@@ -18,8 +18,8 @@ anthropic:
       cache_write_1h: 4.00
       cache_read: 0.10             # 0.05x input on Sonnet 5.5
 
-gemini:
-  tier: free                       # live runs: free tier, billed $0
+gemini:                            # optional alternative provider
+  tier: free                       # free tier: billed $0
   paid_reference:                  # Standard paid tier list prices, for reference only
     gemini-3.5-flash-lite: {input: 0.30, output: 2.50, cache_read: 0.03}
     gemini-3.6-flash: {input: 0.75, output: 3.75, cache_read: 0.075}

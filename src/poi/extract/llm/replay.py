@@ -78,6 +78,17 @@ class ReplayClient:
             (self.write_dir / f"{key}.json").write_text(json.dumps(data, indent=1, sort_keys=True))
         return response
 
+    def has(self, request: LLMRequest) -> bool:
+        return self._find(request_hash(self.provider, request)) is not None
+
+    def save(self, request: LLMRequest, response: LLMResponse) -> None:
+        """Store a response obtained outside `extract` (e.g. from a batch)."""
+        self.write_dir.mkdir(parents=True, exist_ok=True)
+        data = asdict(response)
+        data["replayed"] = False
+        path = self.write_dir / f"{request_hash(self.provider, request)}.json"
+        path.write_text(json.dumps(data, indent=1, sort_keys=True))
+
     def count_tokens(self, request: LLMRequest) -> int:
         if self.inner is None:
             raise MissingRecordingError("token counting needs a provider client")

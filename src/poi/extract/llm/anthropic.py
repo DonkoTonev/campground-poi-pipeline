@@ -1,8 +1,7 @@
-"""Claude adapter: structured outputs, prompt caching, Batch API, thinking off.
+"""Claude adapter (primary provider): structured outputs, prompt caching, Batch API.
 
-Implemented in full and tested against API-shaped fixtures through the real SDK (an
-`httpx2.MockTransport`), never called live in this project (no API budget; the live runs use
-the Gemini adapter). Design:
+Tested against API-shaped fixtures through the real SDK (an `httpx2.MockTransport`), so the
+tests check exactly what would be sent. Design:
 - structured outputs via `output_config.format` with the SDK's `transform_schema` of the
   pydantic model (`additionalProperties: false`); the reply is validated locally after
   checking the stop reason (a refusal is a refusal, not a schema error);

@@ -239,6 +239,12 @@ def extract(
     provider: Annotated[str | None, typer.Option(help="gemini or anthropic.")] = None,
     kind: Annotated[str | None, typer.Option(help="web_bundle or ridb_description.")] = None,
     limit: Annotated[int | None, typer.Option(help="At most this many documents.")] = None,
+    max_cost_usd: Annotated[
+        float | None, typer.Option(help="Hard stop: never spend more than this in one run.")
+    ] = None,
+    batch: Annotated[
+        bool, typer.Option(help="Message Batches API for the cheap step (Anthropic, 50% off).")
+    ] = False,
 ) -> None:
     """LLM extraction over reduced documents (ladder, grounding, ledger)."""
     if mode not in ("replay", "record", "live"):
@@ -258,6 +264,8 @@ def extract(
         provider=provider,
         kind=kind,
         limit=limit,
+        max_cost_usd=max_cost_usd,
+        batch=batch,
     )
     typer.echo(json.dumps(stats, indent=2))
 

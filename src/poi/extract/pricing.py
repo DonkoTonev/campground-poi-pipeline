@@ -1,8 +1,9 @@
 """Cost of a call from its token usage and `config/pricing.yaml`.
 
-`billed` is what the run actually cost (Gemini free tier: 0). `haiku_equivalent` is what the
-same tokens would cost on Claude Haiku 5.5, an *estimate*: the tokens were counted by
-another provider's tokenizer, and caching on Claude would differ.
+`billed` is the list price of the call for its provider (0 for a free tier).
+`haiku_equivalent` prices the same token counts on Claude Haiku 5.5 without caching: for Claude
+calls it is a no-cache reference point; for other providers it is an estimate (another
+tokenizer counted the tokens).
 """
 
 from __future__ import annotations

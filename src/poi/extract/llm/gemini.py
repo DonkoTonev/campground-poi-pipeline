@@ -1,4 +1,4 @@
-"""Gemini adapter (Google AI Studio). Used for the live runs: free tier, rate-limited.
+"""Gemini adapter (Google AI Studio): an optional alternative provider.
 
 Structured output via `response_mime_type="application/json"` plus the JSON schema of the
 pydantic model; the result is validated locally again. Thinking is set to the lowest level

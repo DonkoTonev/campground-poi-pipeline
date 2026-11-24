@@ -80,8 +80,7 @@ def build_client(
 
             if settings.gemini_api_key is None:
                 raise RuntimeError("GEMINI_API_KEY is not set in .env")
-            # One limiter per run, sized for the cheap model (most calls); the strong model's
-            # stricter limits apply to its few escalations through the same window.
+            # Free-tier quotas: one limiter per run, sized for the cheap model (most calls).
             limits = pcfg["limits"][models.cheap]
             limiter = RateLimiter(
                 limits["rpm"],
@@ -95,9 +94,14 @@ def build_client(
                 pcfg["thinking_level"],
             )
         elif provider == "anthropic":
-            raise RuntimeError(
-                "Live Anthropic calls are disabled in this project (no API budget); the "
-                "Anthropic adapter is exercised by fixture tests only."
+            import anthropic
+
+            from poi.extract.llm.anthropic import AnthropicClient
+
+            if settings.anthropic_api_key is None:
+                raise RuntimeError("ANTHROPIC_API_KEY is not set in .env")
+            inner = AnthropicClient(
+                anthropic.Anthropic(api_key=settings.anthropic_api_key.get_secret_value())
             )
     client = ReplayClient(
         provider, inner, mode, RECORDINGS / provider, read_dirs=(SYNTHETIC_RECORDINGS / provider,)
@@ -120,17 +124,28 @@ def record_call(
     step: str | None,
     request: LLMRequest,
     response: LLMResponse,
+    is_batch: bool = False,
 ) -> None:
-    billed = 0.0 if response.replayed else pricing.billed(provider, response.model, response.usage)
+    billed = (
+        0.0
+        if response.replayed
+        else pricing.billed(
+            provider,
+            response.model,
+            response.usage,
+            batch=is_batch,
+            cache_ttl="1h" if is_batch else "5m",
+        )
+    )
     conn.execute(
         text(
             """
             INSERT INTO llm_calls (run_id, document_id, purpose, provider, model, prompt_version,
-                request_hash, ladder_step, input_tokens, output_tokens, cache_read_tokens,
-                cache_write_tokens, thinking_tokens, cost_usd, est_haiku_usd, latency_ms,
-                stop_reason, outcome, replayed)
-            VALUES (:run, :doc, :purpose, :provider, :model, :pv, :hash, :step, :inp, :out, :cr,
-                :cw, :th, :cost, :haiku, :lat, :stop, :outcome, :replayed)
+                request_hash, ladder_step, is_batch, input_tokens, output_tokens,
+                cache_read_tokens, cache_write_tokens, thinking_tokens, cost_usd, est_haiku_usd,
+                latency_ms, stop_reason, outcome, replayed)
+            VALUES (:run, :doc, :purpose, :provider, :model, :pv, :hash, :step, :batch, :inp,
+                :out, :cr, :cw, :th, :cost, :haiku, :lat, :stop, :outcome, :replayed)
             """
         ),
         {
@@ -142,6 +157,7 @@ def record_call(
             "pv": PROMPT_VERSION,
             "hash": request_hash(provider, request),
             "step": step,
+            "batch": is_batch,
             "inp": response.usage.input_tokens,
             "out": response.usage.output_tokens,
             "cr": response.usage.cache_read_tokens,
@@ -199,9 +215,13 @@ def dry_run(
         time.sleep(0.2)  # token counting is free but rate limited too
     n_docs = sum(per_kind.values())
     input_tokens = sum(tokens.values())
+    instructions = setup.client.count_tokens(
+        LLMRequest(
+            setup.models.cheap, INSTRUCTIONS, wrap_document("web_bundle", "0", ""), Extraction
+        )
+    )  # the cacheable prefix: instructions, schema, empty wrapper
     output_tokens = n_docs * ASSUMED_OUTPUT_TOKENS
     strong_calls = round(n_docs * ASSUMED_ESCALATION_SHARE)
-    usage_cheap = Usage(input_tokens=input_tokens, output_tokens=output_tokens)
     usage_strong = Usage(
         input_tokens=round(input_tokens * ASSUMED_ESCALATION_SHARE),
         output_tokens=strong_calls * ASSUMED_OUTPUT_TOKENS,
@@ -223,16 +243,106 @@ def dry_run(
         "rate_limits": limits,
         "requests_used_today": used,
         "min_minutes_at_rpm": round((n_docs + strong_calls) / max(limits.get("rpm", 60), 1), 1),
-        "billed_usd": pricing.billed(setup.provider, setup.models.cheap, usage_cheap)
-        + pricing.billed(setup.provider, setup.models.strong, usage_strong),
-        "estimate_same_run_on_claude_usd": {
-            "haiku_all": pricing.haiku_equivalent(usage_cheap),
-            "haiku_all_batch": round(pricing.haiku_equivalent(usage_cheap) * 0.5, 6),
-            "sonnet_escalations": pricing.billed("anthropic", "claude-sonnet-5-5", usage_strong),
-            "note": "estimate: tokens counted by the live provider's tokenizer, priced with "
-            "config/pricing.yaml; Claude tokenization and caching would differ",
-        },
+        "instruction_tokens": instructions,
+        "estimate_usd": _estimate(
+            setup, input_tokens, output_tokens, n_docs, instructions, usage_strong
+        ),
     }
+
+
+def _estimate(
+    setup: Setup,
+    input_tokens: int,
+    output_tokens: int,
+    n_docs: int,
+    instructions: int,
+    usage_strong: Usage,
+) -> dict[str, Any]:
+    """List-price estimates for the planned run: sync without and with prompt caching
+    (instructions written once, then read), batch with caching, plus the escalation reserve."""
+    cheap, strong = setup.models.cheap, setup.models.strong
+    uncached = Usage(input_tokens=input_tokens, output_tokens=output_tokens)
+    cached = Usage(
+        input_tokens=max(input_tokens - n_docs * instructions, 0),
+        cache_write_tokens=instructions if n_docs else 0,
+        cache_read_tokens=max(n_docs - 1, 0) * instructions,
+        output_tokens=output_tokens,
+    )
+    reserve = pricing.billed(setup.provider, strong, usage_strong)
+    out = {
+        "sync_no_cache": pricing.billed(setup.provider, cheap, uncached),
+        "sync_cached": pricing.billed(setup.provider, cheap, cached),
+        "batch_cached": pricing.billed(setup.provider, cheap, cached, batch=True, cache_ttl="1h"),
+        "escalation_reserve": reserve,
+    }
+    out["worst_case_total"] = round(out["sync_no_cache"] + reserve, 6)
+    if setup.provider != "anthropic":
+        out["claude_haiku_equivalent"] = pricing.haiku_equivalent(uncached)
+    return out
+
+
+def _would_exceed(engine: Engine, run_id: int, setup: Setup, doc: Any, limit: float) -> bool:
+    """Hard stop: spent so far in this run + a pessimistic projection for the next document
+    (cheap and strong call, no caching) must stay under the limit."""
+    with engine.connect() as conn:
+        spent = float(
+            conn.execute(
+                text("SELECT coalesce(sum(cost_usd), 0) FROM llm_calls WHERE run_id = :r"),
+                {"r": run_id},
+            ).scalar_one()
+        )
+    projected = Usage(input_tokens=doc.est_tokens + 2_000, output_tokens=ASSUMED_OUTPUT_TOKENS)
+    nxt = pricing.billed(setup.provider, setup.models.cheap, projected) + pricing.billed(
+        setup.provider, setup.models.strong, projected
+    )
+    return spent + nxt > limit
+
+
+def _run_batch(
+    engine: Engine, run_id: int, setup: Setup, docs: list[Any], bodies: dict[int, str]
+) -> int:
+    """Message Batches (50% price, 1-hour cache TTL) for the cheap step. Results are booked in
+    the ledger as batch calls and stored as recordings, so the ladder then reads them like any
+    other response; escalations run synchronously."""
+    from poi.extract.llm.anthropic import AnthropicClient
+
+    client = setup.client
+    if not isinstance(client, ReplayClient) or not isinstance(client.inner, AnthropicClient):
+        raise RuntimeError("--batch needs the Anthropic provider in record or live mode")
+    requests = {
+        str(doc.id): LLMRequest(
+            setup.models.cheap,
+            INSTRUCTIONS,
+            wrap_document(doc.kind, str(doc.id), bodies[doc.id]),
+            Extraction,
+            setup.max_output_tokens,
+            key=str(doc.id),
+        )
+        for doc in docs
+    }
+    todo = {k: r for k, r in requests.items() if client.mode == "live" or not client.has(r)}
+    if not todo:
+        return 0
+    batch_id = client.inner.submit_batch(todo.values())
+    log.info("extract.batch_submitted", batch_id=batch_id, requests=len(todo))
+    client.inner.wait_batch(batch_id)
+    results = client.inner.collect_batch(batch_id, todo)
+    with engine.begin() as conn:
+        for key, response in results.items():
+            record_call(
+                conn,
+                run_id,
+                int(key),
+                "extract",
+                setup.provider,
+                "cheap",
+                todo[key],
+                response,
+                is_batch=True,
+            )
+            if response.outcome != "error":
+                client.save(todo[key], response)
+    return len(results)
 
 
 def promote(
@@ -290,6 +400,8 @@ def extract_region(
     provider: str | None = None,
     kind: str | None = None,
     limit: int | None = None,
+    max_cost_usd: float | None = None,
+    batch: bool = False,
 ) -> dict[str, Any]:
     setup = build_client(engine, settings, mode, provider)
     store = make_store(settings)
@@ -299,13 +411,22 @@ def extract_region(
         "kind": kind,
         "limit": limit,
         "prompt_version": PROMPT_VERSION,
+        "max_cost_usd": max_cost_usd,
+        "batch": batch,
     }
     with track_run(engine, "extract", region.name, params) as run:
         with engine.connect() as conn:
             docs = pending_documents(conn, setup.provider, kind, limit)
+        bodies = {doc.id: gzip.decompress(store.get(doc.storage_key)).decode() for doc in docs}
         stats: Counter[str] = Counter()
+        if batch:
+            stats["batched"] = _run_batch(engine, run.id, setup, docs, bodies)
         for doc in docs:
-            body = gzip.decompress(store.get(doc.storage_key)).decode()
+            body = bodies[doc.id]
+            if max_cost_usd is not None and _would_exceed(engine, run.id, setup, doc, max_cost_usd):
+                log.warning("extract.max_cost_reached", max_cost_usd=max_cost_usd)
+                stats["stopped_max_cost"] += 1
+                break
             with engine.begin() as conn:
 
                 def on_call(
