@@ -26,7 +26,7 @@ FORBIDDEN_PATH = re.compile(
 ALLOWED_EMAIL_DOMAINS = ("users.noreply.github.com", "anthropic.com", "example.com", "example.org")
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})")
 # NANP number with separators; the fictional range is 555-0100..555-0199.
-PHONE = re.compile(r"(?<!\d)\(?([2-9]\d{2})\)?[-. ]([2-9]\d{2})[-. ](\d{4})(?!\d)")
+PHONE = re.compile(r"(?<![\d.])\(?([2-9]\d{2})\)?[-. /]([2-9]\d{2})[-. /](\d{4})(?![\d.])")
 # Paths whose content is generated or third-party tooling, not our data.
 SKIP_CONTENT = re.compile(r"^uv\.lock$")
 
