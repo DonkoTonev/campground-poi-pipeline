@@ -1,0 +1,43 @@
+# --- private / secrets ---
+.env
+.env.*
+!.env.example
+BRIEF.md
+PRIVATE_NOTES.md
+*.pem
+*.key
+
+# --- data that must never be committed ---
+data/raw/
+data/cache/
+data/local/
+eval/gold/extraction/real/pages/
+eval/recordings/real/
+.scrapy/
+httpcache/
+
+# --- python / tooling ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# --- logs ---
+*.log
+logs/
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
