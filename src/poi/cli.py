@@ -333,5 +333,25 @@ def serve(
     uvicorn.run("poi.serve.api:app", host=host, port=port)
 
 
+@app.command()
+def demo() -> None:
+    """Pipeline on the committed snapshot (no keys): load → normalize → match → resolve → index."""
+    from poi.demo import run_demo
+
+    result = run_demo(get_settings())
+    base = "http://127.0.0.1:8000"
+    typer.echo(json.dumps(result, indent=2))
+    typer.echo(f"""
+Try (after `poi serve`, or `make demo` which starts it):
+  {base}/docs
+  {base}/campgrounds/search?q=tuolume%20medows
+  {base}/campgrounds/search?lat=37.74&lon=-119.57&radius_km=30&open_in_month=1
+  {base}/campgrounds/bbox?min_lat=37.70&min_lon=-119.62&max_lat=37.76&max_lon=-119.53
+  {base}/campgrounds/{result["example_id"]}
+  curl -X POST {base}/campgrounds/along-route -H 'content-type: application/json' \\
+    -d '{{"route": [[-119.86, 37.70], [-119.59, 37.74], [-119.35, 37.87]], "buffer_km": 3}}'
+""")
+
+
 if __name__ == "__main__":
     app()

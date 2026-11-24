@@ -14,7 +14,7 @@ from elasticsearch import Elasticsearch, helpers
 from sqlalchemy import Engine, text
 
 from poi.runs import track_run
-from poi.settings import Region
+from poi.settings import Region, get_settings
 
 KEEP_OLD_VERSIONS = 1
 
@@ -64,8 +64,8 @@ MAPPINGS = {
 }
 
 
-def alias_name(region: str) -> str:
-    return f"campgrounds-{region}"
+def alias_name(region: str, prefix: str | None = None) -> str:
+    return f"{prefix or get_settings().index_prefix}-{region}"
 
 
 def documents(engine: Engine, region: str) -> Iterator[dict[str, Any]]:

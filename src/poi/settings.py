@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://poi:poi@localhost:5433/poi"
     elasticsearch_url: str = "http://localhost:9200"
+    index_prefix: str = "campgrounds"  # search alias: <prefix>-<region>
 
     raw_store: Literal["local", "s3"] = "local"
     raw_store_path: Path = PROJECT_ROOT / "data" / "raw"

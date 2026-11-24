@@ -47,8 +47,9 @@ report:  ## Markdown reports in reports/
 	$(UV) poi report quality
 	$(UV) poi report changes
 	$(UV) poi report tokens
+	$(UV) poi report cost
 
-eval:  ## metrics on verified gold labels (reports/)
+eval:  ## metrics on verified gold labels; extraction eval replays recordings (reports/)
 	$(UV) poi eval er
 
 fixtures:  ## re-cut scrubbed test fixtures from the raw store
@@ -75,3 +76,14 @@ typecheck:
 .PHONY: publishable
 publishable:  ## full-history leak + publication checks (also runs on every push)
 	$(UV) pre-commit run --hook-stage pre-push --all-files
+
+# Keyless demo: its own database and index prefix, so it never touches a development setup.
+POI_DB_PORT ?= 5433
+DEMO_ENV := DATABASE_URL=postgresql+psycopg://poi:poi@localhost:$(POI_DB_PORT)/poi_demo INDEX_PREFIX=demo-campgrounds
+
+.PHONY: demo
+demo:  ## fresh clone, no API keys: compose up, load snapshot, pipeline, index, start the API
+	uv sync --frozen
+	docker compose up -d --wait
+	$(DEMO_ENV) $(UV) poi demo
+	$(DEMO_ENV) $(UV) poi serve
