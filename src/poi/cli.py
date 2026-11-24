@@ -7,6 +7,7 @@ from typing import Annotated
 
 import typer
 
+from poi.crawl.stage import crawl_region
 from poi.db import check_extensions, get_engine
 from poi.eval import er as er_eval
 from poi.ingest import ingest_source
@@ -112,8 +113,10 @@ def suggest_gold(
         new = gold.suggest(conn, reg.name, target)
     pairs = gold.merge(gold.load(), new)
     gold.save(pairs)
-    typer.echo(f"{len(pairs)} pairs in {gold.GOLD_PATH.relative_to(PROJECT_ROOT)} "
-               f"({sum(p.verified for p in pairs)} verified)")  # fmt: skip
+    typer.echo(
+        f"{len(pairs)} pairs in {gold.GOLD_PATH.relative_to(PROJECT_ROOT)} "
+        f"({sum(p.verified for p in pairs)} verified)"
+    )
 
 
 @review_app.command("label")
@@ -171,3 +174,36 @@ def report_changes(region: Annotated[str | None, typer.Option(help="Region name.
     reg = load_region(region, get_settings())
     with get_engine().connect() as conn:
         typer.echo(reports.write("changes.md", reports.changes_report(conn, reg.name)))
+
+
+@app.command()
+def crawl(
+    region: Annotated[str | None, typer.Option(help="Region name.")] = None,
+    plan: Annotated[
+        bool, typer.Option(help="Screen and record seeds only; fetch nothing.")
+    ] = False,
+    render: Annotated[
+        bool, typer.Option(help="Render thin JS-only pages with Playwright.")
+    ] = False,
+    max_sites: Annotated[int | None, typer.Option(help="Crawl at most this many sites.")] = None,
+    seed: Annotated[list[str] | None, typer.Option(help="Extra seed URL (repeatable).")] = None,
+    http_cache: Annotated[bool, typer.Option(help="Scrapy HTTP cache (development).")] = False,
+) -> None:
+    """Crawl official campground websites responsibly; every outcome is recorded."""
+    settings = get_settings()
+    stats = crawl_region(
+        get_engine(),
+        settings,
+        load_region(region, settings),
+        plan_only=plan,
+        render=render,
+        max_sites=max_sites,
+        extra_seeds=seed,
+        http_cache=http_cache,
+        allow_private=settings.crawl_allow_private_hosts,
+    )
+    typer.echo(json.dumps(stats, indent=2))
+
+
+if __name__ == "__main__":
+    app()

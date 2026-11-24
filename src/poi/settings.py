@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     overpass_url: str = "https://overpass-api.de/api/interpreter"
     ridb_base_url: str = "https://ridb.recreation.gov/api/v1"
     nps_base_url: str = "https://developer.nps.gov/api/v1"
+    # Test-only escape hatch for crawling a local fixture server; SSRF screening otherwise.
+    crawl_allow_private_hosts: bool = False
 
     anthropic_api_key: SecretStr | None = None
     ridb_api_key: SecretStr | None = None
