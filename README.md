@@ -20,6 +20,9 @@ make lint test
 uv run poi doctor
 make ingest     # OSM always; RIDB / NPS when their keys are set (otherwise skipped with a log)
 make normalize  # canonical poi_records + quality_flags
+make match      # entity resolution
+uv run poi review label   # verify ER gold pairs
+make eval       # precision / recall on verified labels
 ```
 
 ## Results so far
@@ -52,6 +55,11 @@ a flag for review. Field coverage of the campgrounds shows where the gaps are:
 Season dates are known for 16 of 379 campgrounds, all from NPS. Closing that gap from official
 websites is the job of the LLM extraction stage, and its effect will be measured against this
 baseline.
+
+Entity resolution (`poi match`) turns the 379 campground records into 300 clusters: 79 records
+merged, 15 campgrounds confirmed by all three sources, 36 pairs in the review queue, 5 group or
+horse areas linked to a parent campground. Precision and recall are not reported yet: they
+will be computed on a gold set of 200 pairs once a person has verified the labels.
 
 ## Data sources and attribution
 - Map data © OpenStreetMap contributors, available under the Open Database License (ODbL).

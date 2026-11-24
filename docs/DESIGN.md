@@ -40,6 +40,53 @@ Rules worth calling out:
   Apr 22 to Oct 18). A first version computed the complement within one calendar year and
   produced "January to August" for a campground open mid-July to mid-August.
 
+## Entity resolution and the 200 m question
+
+"What if several campgrounds are within 200 m of each other?" In Yosemite Valley, Upper,
+Lower and North Pines sit within about 300 m; family, group and horse camps share a lake and a
+base name; an OSM polygon, an NPS point and a RIDB point for the *same* campground can be
+4 km apart when one source's coordinates are wrong. So distance generates candidates and is
+one weighted feature. It is never a merge rule.
+
+**Blocking** (PostGIS, three index-backed passes, unioned): `ST_DWithin` on the
+polygon-aware geography (2 km, wider for low-precision points), `pg_trgm` name similarity for
+records whose coordinates can't be trusted, and exact joins on shared identifiers
+(recreation.gov facility id, NPS id, wikidata).
+
+**Scoring** is Fellegi-Sunter-style log-odds with hand-set weights in
+`config/matching.yaml`: prior, distance bins (0 inside a polygon), core-name similarity (generic
+words removed, former names considered), discriminator tokens, shared ids, phone and website
+equality weighted by inverse frequency (a ranger-district phone shared by 20 campgrounds
+counts little), and category compatibility. Every pair keeps its per-feature contributions, so
+each decision is explainable.
+
+**Discriminators** are what answer the 200 m question. "Upper" vs "Lower", "Old" vs "New",
+loop letters, and hard types (group, horse, overflow, walk-in, backpacker) on one side only are
+strong non-match evidence even at 25 m. "RV" and "tent" are soft (a resort and its RV park can
+be one place). A shared authoritative id outweighs a discriminator: a renamed campground can
+carry a different one.
+
+**Thresholds favour precision.** A false merge deletes a real campground from the app; a false
+split shows a duplicate pin. Auto-merge needs a score of 4 or more; 0 to 4 goes to review; a
+name match that only works through a former name always goes to review (possible rename).
+
+**Clustering** adds accepted edges strongest first (union-find) and refuses an edge that would
+put a cannot-link pair in one cluster: two different RIDB or NPS ids, conflicting
+discriminators without a shared id, a pair scored as a strong non-match, or a cluster wider
+than 3 km. Refused edges become review items, so a chain A~B~C with A and C incompatible
+splits on its weaker edge. Edges backed by a shared id skip the diameter guard: in real data
+RIDB places Crane Flat 4.2 km and Wawona 3.2 km from where NPS and OSM put them, and those
+records are kept out of later diameter checks.
+
+**Hierarchy.** A group or horse camp, a loop, or an unnamed site inside another campground's
+polygon becomes its child (`record_relations`), not a duplicate.
+
+**Evaluation.** `poi review suggest-gold` samples about 200 pairs stratified by score bin and
+oversampling hard cases (close but differently named, same name far apart, shared phone,
+similar names that blocking missed). Suggested labels come from the model and are marked
+unverified; `poi review label` hides them by default to avoid anchoring the reviewer.
+`poi eval er` reports precision and recall on verified labels only, with Wilson intervals.
+
 ## Edge cases found in real data
 
 Logged as they are discovered; each handled case has a test.

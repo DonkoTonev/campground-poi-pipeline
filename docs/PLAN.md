@@ -9,7 +9,7 @@ Website-extracted records later join matching as one more source (M7), and we me
 | M0 | Bootstrap: repo, tooling, compose (PostGIS, Elasticsearch), CI, pre-commit + gitleaks, baseline migration | ✅ done |
 | M1 | Ingest OSM (Overpass), RIDB, NPS → raw store + `source_records`; counts per source | ✅ done |
 | M2 | Canonical model: normalization + validation flags (names, contact, geometry, categories, seasons) | ✅ done |
-| M3 | Entity resolution on structured sources: blocking, features, log-odds scoring, constrained clustering, hierarchy; label CLI, ER gold set + eval | ⏳ next |
+| M3 | Entity resolution on structured sources: blocking, features, log-odds scoring, constrained clustering, hierarchy; label CLI, ER gold set + eval | ⏳ awaiting verified labels |
 | M4 | Golden records: survivorship, stable IDs + redirects, overrides, quality score; quality / changes reports | |
 | M5 | Responsible crawler seeded from M1 records; crawl stats | |
 | M6 | Reduce + deterministic extraction; token metrics per representation | |
@@ -50,3 +50,13 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] Seasons: month-day ranges, holiday anchors, OSM `opening_hours`, NPS recurring closures, stale flag
 - [x] Amenities tri-state (never default to `no`), units (m → ft), sites, price, reservability
 - [x] Unit tests for each edge case; idempotent stage integration test
+
+## M3 checklist
+- [x] Blocking in PostGIS: spatial (polygon-aware, precision-adaptive), pg_trgm names, shared ids
+- [x] Features and explainable log-odds scoring (`config/matching.yaml`)
+- [x] Discriminators, IDF-weighted phone/website, shared-id dominance, rename → review
+- [x] Constrained clustering (cannot-link, strong non-match, diameter) and hierarchy
+- [x] All §10 matching edge cases as unit tests; idempotent stage integration test
+- [x] Gold set suggestion (200 pairs, stratified) and `poi review label`
+- [ ] Labels verified by a person
+- [ ] `poi eval er` on verified labels, thresholds tuned, numbers in README
