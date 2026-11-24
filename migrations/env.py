@@ -12,14 +12,19 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
+def _url() -> str:
+    # Tests pass their own database URL via `config.attributes["url"]`.
+    return config.attributes.get("url") or get_settings().database_url
+
+
 def run_migrations_offline() -> None:
-    context.configure(url=get_settings().database_url, literal_binds=True)
+    context.configure(url=_url(), literal_binds=True)
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
-    engine = create_engine(get_settings().database_url)
+    engine = create_engine(_url())
     with engine.connect() as connection:
         context.configure(connection=connection)
         with context.begin_transaction():

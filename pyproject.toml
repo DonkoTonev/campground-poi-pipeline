@@ -6,12 +6,16 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic>=1.20.1",
+    "boto3>=1.44.10",
+    "httpx>=0.28.1",
     "psycopg[binary]>=3.2",
     "pydantic>=2.14.4",
     "pydantic-settings>=2.16.3",
     "pyyaml>=6.0.4",
+    "shapely>=2.2.0",
     "sqlalchemy>=2",
     "structlog>=26.1.0",
+    "tenacity>=9.2.1",
     "typer>=0.29.2",
 ]
 
@@ -59,9 +63,13 @@ markers = [
 
 [dependency-groups]
 dev = [
+    "boto3-stubs[s3]>=1.44.10",
+    "moto[s3]>=5.2.6",
     "mypy>=2.4.1",
     "pre-commit>=4.7.0",
     "pytest>=9.2.0",
+    "respx>=0.23.1",
     "ruff>=0.17.6",
     "types-pyyaml>=6.0.12.20261122",
+    "types-shapely>=2.2.0.20261122",
 ]
