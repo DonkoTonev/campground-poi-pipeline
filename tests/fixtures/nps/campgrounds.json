@@ -1,0 +1,747 @@
+{
+ "data": [
+  {
+   "accessibility": {
+    "accessRoads": [
+     "Paved Roads - All vehicles OK"
+    ],
+    "adaInfo": "The following campsites are suitable for wheelchairs and include picnic tables with extended tops. The closest restrooms to these campsites are also wheelchair accessible. These campsites are limited \u2026",
+    "additionalInfo": "Each campsite contains a <b>fire ring</b>, <b>picnic table</b>, and a <b>food locker</b> and is near a <b>bathroom with drinking water and flushing toilets</b>. In Upper Pines food lockers measure 35\"\u2026",
+    "cellPhoneInfo": "",
+    "classifications": [
+     "Developed Campground"
+    ],
+    "fireStovePolicy": "Wood fires are permitted all year, however, from May through September, campfires in Yosemite Valley are only allowed between 5 pm and 10 pm (campfires are allowed at any time from October through Apr\u2026",
+    "internetInfo": "",
+    "rvAllowed": "1",
+    "rvInfo": "Upper Pines: 236 sites with space for tents, RVs up to 35 feet, and trailers up to 24 feet. Not every site can accommodate equipment of these lengths. Be sure to read the site details when making a re\u2026",
+    "rvMaxLength": "35",
+    "trailerAllowed": "1",
+    "trailerMaxLength": "24",
+    "wheelchairAccess": "The following campsites are suitable for wheelchairs and include picnic tables with extended tops. The closest restrooms to these campsites are also wheelchair accessible. These campsites are limited \u2026"
+   },
+   "addresses": [
+    {
+     "city": "Yosemite",
+     "countryCode": "US",
+     "line1": "9024 Southside Drive",
+     "line2": "",
+     "line3": "",
+     "postalCode": "95389",
+     "provinceTerritoryCode": "",
+     "stateCode": "CA",
+     "type": "Physical"
+    },
+    {
+     "city": "Yosemite",
+     "countryCode": "US",
+     "line1": "P.O. Box 577",
+     "line2": "",
+     "line3": "",
+     "postalCode": "95389",
+     "provinceTerritoryCode": "",
+     "stateCode": "CA",
+     "type": "Mailing"
+    }
+   ],
+   "amenities": {
+    "amphitheater": "No",
+    "campStore": "No",
+    "cellPhoneReception": "Yes - year round",
+    "dumpStation": "Yes - year round",
+    "firewoodForSale": "No",
+    "foodStorageLockers": "Yes - year round",
+    "iceAvailableForSale": "No",
+    "internetConnectivity": "No",
+    "laundry": "No",
+    "potableWater": [
+     "Yes - year round"
+    ],
+    "showers": [
+     "None"
+    ],
+    "staffOrVolunteerHostOnsite": "Yes - seasonal",
+    "toilets": [
+     "Flush Toilets - year round"
+    ],
+    "trashRecyclingCollection": "Yes - year round"
+   },
+   "audioDescription": "",
+   "campsites": {
+    "electricalHookups": "0",
+    "group": "0",
+    "horse": "0",
+    "other": "203",
+    "rvOnly": "29",
+    "tentOnly": "4",
+    "totalSites": "236",
+    "walkBoatTo": "0"
+   },
+   "contacts": {
+    "emailAddresses": [
+     {
+      "description": "",
+      "emailAddress": "contact2860@example.com"
+     }
+    ],
+    "phoneNumbers": [
+     {
+      "description": "",
+      "extension": "",
+      "phoneNumber": "555-0139",
+      "type": "Voice"
+     }
+    ]
+   },
+   "description": "Upper Pines is located near the Merced River in Yosemite Valley. Yosemite Valley is centrally located in the park and boasts some of Yosemite\u2019s most iconic features. This large campground is located a\u2026",
+   "directionsOverview": "From Hwy. 140/Arch Rock Entrance, continue driving west on the El Portal Road 8 miles to Yosemite Valley. From Hwy. 41/South Entrance drive 33 miles north (approximately 1 hour) on the Wawona Road to \u2026",
+   "directionsUrl": "https://www.nps.gov/yose/planyourvisit/driving.htm",
+   "fees": [
+    {
+     "cost": "36.00",
+     "description": "Upper Pines Campground Reservation Fee - All Sites/night",
+     "title": "Upper Pines Campground Reservation Fee - All Sites"
+    }
+   ],
+   "geometryPoiId": "859A9C45-076D-4712-B0DF-42D0E1C3AB99",
+   "id": "9D5B57D0-793A-4C2B-B620-5B561EDFC031",
+   "isPassportStampLocation": "0",
+   "lastIndexedDate": "",
+   "latLong": "{lat:37.7384294725, lng:-119.564411225}",
+   "latitude": "37.7384294725",
+   "longitude": "-119.564411225",
+   "name": "Upper Pines Campground",
+   "numberOfSitesFirstComeFirstServe": "0",
+   "numberOfSitesReservable": "236",
+   "operatingHours": [
+    {
+     "description": "Upper Pines is open all year for tents, RVs (up to 35 ft.), and trailers (up to 24 ft.). Reservations are required year-round. For the winter season, only the first two loops are normally open (about \u2026",
+     "exceptions": [
+      {
+       "endDate": "2027-11-20",
+       "exceptionHours": {
+        "friday": "Closed",
+        "thursday": "Closed",
+        "wednesday": "Closed"
+       },
+       "name": "November Storm Closure",
+       "startDate": "2027-11-18"
+      }
+     ],
+     "name": "Upper Pines Campground",
+     "standardHours": {
+      "friday": "All Day",
+      "monday": "All Day",
+      "saturday": "All Day",
+      "sunday": "All Day",
+      "thursday": "All Day",
+      "tuesday": "All Day",
+      "wednesday": "All Day"
+     }
+    }
+   ],
+   "parkCode": "yose",
+   "passportStampImages": [],
+   "passportStampLocationDescription": "",
+   "regulationsOverview": "<b>Pets:</b> Permitted (must be on a leash at all times) <b>Fires:</b> Wood and charcoal fires are permitted all year. From May through September, Wood fires are only allowed 5 pm\u201310 pm. Air quality m\u2026",
+   "regulationsurl": "https://www.nps.gov/yose/planyourvisit/campregs.htm",
+   "relevanceScore": 1.0,
+   "reservationInfo": "Reservations are required all year for Upper Pines. Campground reservations are available in blocks of one month at a time, up to five months in advance, on the 15th of each month at 7 am Pacific time\u2026",
+   "reservationUrl": "https://www.recreation.gov/camping/campgrounds/232447",
+   "url": "https://www.nps.gov/yose/planyourvisit/pinescampgrounds.htm",
+   "weatherOverview": "Yosemite National Park covers nearly 1,200 square miles (3,100 square km) in the Sierra Nevada, with elevations ranging from about 2,000 feet (600 m) to 13,000 ft (4,000 m). Yosemite receives 95% of i\u2026"
+  },
+  {
+   "accessibility": {
+    "accessRoads": [
+     "Paved Roads - All vehicles OK"
+    ],
+    "adaInfo": "The following campsites are suitable for wheelchairs and include picnic tables with extended tops. The closest restrooms to these campsites are also wheelchair accessible. These campsites are limited \u2026",
+    "additionalInfo": "Each campsite contains a <b>fire ring</b>, <b>picnic table</b>, and a <b>food locker</b> and is near a <b>bathroom with drinking water and flushing toilets</b>. In Upper Pines food lockers measure 35\"\u2026",
+    "cellPhoneInfo": "",
+    "classifications": [
+     "Developed Campground"
+    ],
+    "fireStovePolicy": "Wood fires are permitted all year, however, from May through September, campfires in Yosemite Valley are only allowed between 5 pm and 10 pm (campfires are allowed at any time from October through Apr\u2026",
+    "internetInfo": "",
+    "rvAllowed": "1",
+    "rvInfo": "North Pines: 81 sites with space for tents, RVs up to 40 feet, and trailers up to 35 feet. Not every site can accommodate equipment of these lengths. Be sure to read the site details when making a res\u2026",
+    "rvMaxLength": "40",
+    "trailerAllowed": "1",
+    "trailerMaxLength": "35",
+    "wheelchairAccess": "The following campsites are suitable for wheelchairs and include picnic tables with extended tops. The closest restrooms to these campsites are also wheelchair accessible. These campsites are limited \u2026"
+   },
+   "addresses": [
+    {
+     "city": "Yosemite",
+     "countryCode": "US",
+     "line1": "9024 Southside Drive",
+     "line2": "",
+     "line3": "",
+     "postalCode": "95389",
+     "provinceTerritoryCode": "",
+     "stateCode": "CA",
+     "type": "Physical"
+    },
+    {
+     "city": "Yosemite",
+     "countryCode": "US",
+     "line1": "P.O. Box 577",
+     "line2": "",
+     "line3": "",
+     "postalCode": "95389",
+     "provinceTerritoryCode": "",
+     "stateCode": "CA",
+     "type": "Mailing"
+    }
+   ],
+   "amenities": {
+    "amphitheater": "No",
+    "campStore": "No",
+    "cellPhoneReception": "Yes - seasonal",
+    "dumpStation": "No",
+    "firewoodForSale": "No",
+    "foodStorageLockers": "Yes - seasonal",
+    "iceAvailableForSale": "No",
+    "internetConnectivity": "No",
+    "laundry": "No",
+    "potableWater": [
+     "Yes - seasonal"
+    ],
+    "showers": [
+     "None"
+    ],
+    "staffOrVolunteerHostOnsite": "Yes - seasonal",
+    "toilets": [
+     "Flush Toilets - seasonal"
+    ],
+    "trashRecyclingCollection": "Yes - seasonal"
+   },
+   "audioDescription": "",
+   "campsites": {
+    "electricalHookups": "0",
+    "group": "0",
+    "horse": "0",
+    "other": "63",
+    "rvOnly": "18",
+    "tentOnly": "0",
+    "totalSites": "81",
+    "walkBoatTo": "0"
+   },
+   "contacts": {
+    "emailAddresses": [
+     {
+      "description": "",
+      "emailAddress": "contact2860@example.com"
+     }
+    ],
+    "phoneNumbers": [
+     {
+      "description": "",
+      "extension": "",
+      "phoneNumber": "555-0139",
+      "type": "Voice"
+     }
+    ]
+   },
+   "description": "North Pines is located along the Merced River in Yosemite Valley. Yosemite Valley is centrally located in the park and boasts some of Yosemite\u2019s most iconic features. This campground is located at 4,0\u2026",
+   "directionsOverview": "From Hwy. 140/Arch Rock Entrance, continue driving west on the El Portal Road 8 miles to Yosemite Valley. From Hwy. 41/South Entrance drive 33 miles north (approximately 1 hour) on the Wawona Road to \u2026",
+   "directionsUrl": "https://www.nps.gov/yose/planyourvisit/driving.htm",
+   "fees": [
+    {
+     "cost": "36.00",
+     "description": "North Pines Campground Reservation Fee - All Sites/night",
+     "title": "North Pines Campground Reservation Fee - All Sites"
+    }
+   ],
+   "geometryPoiId": "C251992C-D994-4181-B81E-5AAB4B06B10F",
+   "id": "BDF9737C-DD6E-457F-9ADC-501B07851F77",
+   "isPassportStampLocation": "0",
+   "lastIndexedDate": "",
+   "latLong": "{lat:37.74041634, lng:-119.565030848}",
+   "latitude": "37.74041634",
+   "longitude": "-119.565030848",
+   "name": "North Pines Campground",
+   "numberOfSitesFirstComeFirstServe": "0",
+   "numberOfSitesReservable": "81",
+   "operatingHours": [
+    {
+     "description": "North Pines is open seasonally from mid-April to mid-October for tents, RVs (up to 40 ft.), and trailers (up to 35 ft.). Exact dates vary. In 2026, the campground will be open from April 21 until Octo\u2026",
+     "exceptions": [
+      {
+       "endDate": "2027-04-21",
+       "exceptionHours": {
+        "friday": "Closed",
+        "monday": "Closed",
+        "saturday": "Closed",
+        "sunday": "Closed",
+        "thursday": "Closed",
+        "tuesday": "Closed",
+        "wednesday": "Closed"
+       },
+       "name": "Seasonal Winter Closure",
+       "startDate": "2026-10-26"
+      }
+     ],
+     "name": "North Pines Campground",
+     "standardHours": {
+      "friday": "All Day",
+      "monday": "All Day",
+      "saturday": "All Day",
+      "sunday": "All Day",
+      "thursday": "All Day",
+      "tuesday": "All Day",
+      "wednesday": "All Day"
+     }
+    }
+   ],
+   "parkCode": "yose",
+   "passportStampImages": [],
+   "passportStampLocationDescription": "",
+   "regulationsOverview": "<b>Pets:</b> Permitted (must be on a leash at all times) <b>Fires:</b> Wood and charcoal fires are permitted all year. From May through September, Wood fires are only allowed 5 pm\u201310 pm. Air quality m\u2026",
+   "regulationsurl": "https://www.nps.gov/yose/planyourvisit/campregs.htm",
+   "relevanceScore": 1.0,
+   "reservationInfo": "North Pines Campground reservations are available by early access lottery; any available reservations after the lottery are available up to five months in advance starting February 15. Successful lott\u2026",
+   "reservationUrl": "https://www.recreation.gov/camping/campgrounds/232449",
+   "url": "https://www.nps.gov/yose/planyourvisit/pinescampgrounds.htm",
+   "weatherOverview": "Yosemite National Park covers nearly 1,200 square miles (3,100 square km) in the Sierra Nevada, with elevations ranging from about 2,000 feet (600 m) to 13,000 ft (4,000 m). Yosemite receives 95% of i\u2026"
+  },
+  {
+   "accessibility": {
+    "accessRoads": [
+     "Paved Roads - All vehicles OK"
+    ],
+    "adaInfo": "The following campsites are suitable for wheelchairs and include picnic tables with extended tops. The closest restrooms to these campsites are also wheelchair accessible. These campsites are limited \u2026",
+    "additionalInfo": "Each campsite contains a <b>fire ring</b>, <b>picnic table</b>, and a <b>food locker</b> and is near a <b>bathroom with drinking water and flushing toilets</b>. In Upper Pines food lockers measure 35\"\u2026",
+    "cellPhoneInfo": "",
+    "classifications": [
+     "Developed Campground"
+    ],
+    "fireStovePolicy": "Wood fires are permitted all year, however, from May through September, campfires in Yosemite Valley are only allowed between 5 pm and 10 pm (campfires are allowed at any time from October through Apr\u2026",
+    "internetInfo": "",
+    "rvAllowed": "1",
+    "rvInfo": "Lower Pines: 73 sites with space for tents, RVs up to 40 feet, and trailers up to 35 feet. Not every site can accommodate equipment of these lengths. Be sure to read the site details when making a res\u2026",
+    "rvMaxLength": "40",
+    "trailerAllowed": "1",
+    "trailerMaxLength": "35",
+    "wheelchairAccess": "The following campsites are suitable for wheelchairs and include picnic tables with extended tops. The closest restrooms to these campsites are also wheelchair accessible. These campsites are limited \u2026"
+   },
+   "addresses": [
+    {
+     "city": "Yosemite",
+     "countryCode": "US",
+     "line1": "9024 Southside Drive",
+     "line2": "",
+     "line3": "",
+     "postalCode": "95389",
+     "provinceTerritoryCode": "",
+     "stateCode": "CA",
+     "type": "Physical"
+    },
+    {
+     "city": "Yosemite",
+     "countryCode": "US",
+     "line1": "P.O. Box 577",
+     "line2": "",
+     "line3": "",
+     "postalCode": "95389",
+     "provinceTerritoryCode": "",
+     "stateCode": "CA",
+     "type": "Mailing"
+    }
+   ],
+   "amenities": {
+    "amphitheater": "Yes - seasonal",
+    "campStore": "No",
+    "cellPhoneReception": "Yes - seasonal",
+    "dumpStation": "No",
+    "firewoodForSale": "No",
+    "foodStorageLockers": "Yes - seasonal",
+    "iceAvailableForSale": "No",
+    "internetConnectivity": "No",
+    "laundry": "No",
+    "potableWater": [
+     "Yes - seasonal"
+    ],
+    "showers": [
+     "None"
+    ],
+    "staffOrVolunteerHostOnsite": "Yes - seasonal",
+    "toilets": [
+     "Flush Toilets - seasonal"
+    ],
+    "trashRecyclingCollection": "Yes - seasonal"
+   },
+   "audioDescription": "",
+   "campsites": {
+    "electricalHookups": "0",
+    "group": "0",
+    "horse": "0",
+    "other": "62",
+    "rvOnly": "12",
+    "tentOnly": "0",
+    "totalSites": "74",
+    "walkBoatTo": "0"
+   },
+   "contacts": {
+    "emailAddresses": [
+     {
+      "description": "",
+      "emailAddress": "contact2860@example.com"
+     }
+    ],
+    "phoneNumbers": [
+     {
+      "description": "",
+      "extension": "",
+      "phoneNumber": "555-0139",
+      "type": "Voice"
+     }
+    ]
+   },
+   "description": "Lower Pines is located along the Merced River in Yosemite Valley. Yosemite Valley is centrally located in the park and boasts some of Yosemite\u2019s most iconic features. This campground is located at 4,0\u2026",
+   "directionsOverview": "From Hwy. 140/Arch Rock Entrance, continue driving west on the El Portal Road 8 miles to Yosemite Valley. From Hwy. 41/South Entrance drive 33 miles north (approximately 1 hour) on the Wawona Road to \u2026",
+   "directionsUrl": "https://www.nps.gov/yose/planyourvisit/driving.htm",
+   "fees": [
+    {
+     "cost": "36.00",
+     "description": "Lower Pines Campground Reservation Fee \u2013 Regular Sites",
+     "title": "Lower Pines Campground Reservation Fee \u2013 Regular Sites"
+    },
+    {
+     "cost": "60.00",
+     "description": "Lower Pines Campground Reservation Fee \u2013 Double Sites",
+     "title": "Lower Pines Campground Reservation Fee \u2013 Double Sites"
+    }
+   ],
+   "geometryPoiId": "0D3377B6-FF0D-4733-AB42-F9D768427953",
+   "id": "4C3C4954-FA9C-4C58-B6CF-E66054E1F0EF",
+   "isPassportStampLocation": "0",
+   "lastIndexedDate": "",
+   "latLong": "{lat:37.7394658916, lng:-119.566313767}",
+   "latitude": "37.7394658916",
+   "longitude": "-119.566313767",
+   "name": "Lower Pines Campground",
+   "numberOfSitesFirstComeFirstServe": "0",
+   "numberOfSitesReservable": "74",
+   "operatingHours": [
+    {
+     "description": "Lower Pines is open seasonally from mid-April to mid-October for tents, RVs (up to 40 ft.), and trailers (up to 35 ft.). Exact dates vary. In 2026, the campground will be open from April 21 until Octo\u2026",
+     "exceptions": [
+      {
+       "endDate": "2027-04-21",
+       "exceptionHours": {
+        "friday": "Closed",
+        "monday": "Closed",
+        "saturday": "Closed",
+        "sunday": "Closed",
+        "thursday": "Closed",
+        "tuesday": "Closed",
+        "wednesday": "Closed"
+       },
+       "name": "Seasonal Winter Closure",
+       "startDate": "2026-10-19"
+      }
+     ],
+     "name": "Lower Pines Campground",
+     "standardHours": {
+      "friday": "All Day",
+      "monday": "All Day",
+      "saturday": "All Day",
+      "sunday": "All Day",
+      "thursday": "All Day",
+      "tuesday": "All Day",
+      "wednesday": "All Day"
+     }
+    }
+   ],
+   "parkCode": "yose",
+   "passportStampImages": [],
+   "passportStampLocationDescription": "",
+   "regulationsOverview": "<b>Pets:</b> Permitted (must be on a leash at all times). <b>Fires:</b> Wood and charcoal fires are permitted. From May through September, Wood fires are only allowed from 5 pm -10 pm. <b>People per s\u2026",
+   "regulationsurl": "https://www.nps.gov/yose/planyourvisit/campregs.htm",
+   "relevanceScore": 1.0,
+   "reservationInfo": "Reservations are required seasonally when Lower Pines is open (mid-April through late October). Campground reservations are available in blocks of one month at a time, up to five months in advance, on\u2026",
+   "reservationUrl": "https://www.recreation.gov/camping/campgrounds/232450",
+   "url": "https://www.nps.gov/yose/planyourvisit/pinescampgrounds.htm",
+   "weatherOverview": "Yosemite National Park covers nearly 1,200 square miles (3,100 square km) in the Sierra Nevada, with elevations ranging from about 2,000 feet (600 m) to 13,000 ft (4,000 m). Yosemite receives 95% of i\u2026"
+  },
+  {
+   "accessibility": {
+    "accessRoads": [
+     "Paved Roads - All vehicles OK"
+    ],
+    "adaInfo": "The following campsites are suitable for wheelchairs and include picnic tables with extended tops. The closest restrooms to these campsites are also wheelchair accessible. These campsites are limited \u2026",
+    "additionalInfo": "Each campsite contains a <b>fire ring</b>, <b>picnic table</b>, and a <b>food locker</b> and is near a <b>bathroom with drinking water and flushing toilets</b>. In Tuolumne Meadows food lockers measur\u2026",
+    "cellPhoneInfo": "",
+    "classifications": [
+     "Developed Campground"
+    ],
+    "fireStovePolicy": "Wood and charcoal fires are permitted when the campground is in use/open.",
+    "internetInfo": "",
+    "rvAllowed": "1",
+    "rvInfo": "Tuolumne Meadows: 304 sites with space for tents, RVs up to 35 feet, and trailers up to 35 feet. Not every site can accommodate equipment of these lengths. Be sure to read the site details when making\u2026",
+    "rvMaxLength": "35",
+    "trailerAllowed": "1",
+    "trailerMaxLength": "24",
+    "wheelchairAccess": "The following campsites are suitable for wheelchairs and include picnic tables with extended tops. The closest restrooms to these campsites are also wheelchair accessible. These campsites are limited \u2026"
+   },
+   "addresses": [],
+   "amenities": {
+    "amphitheater": "Yes - seasonal",
+    "campStore": "No",
+    "cellPhoneReception": "Yes - seasonal",
+    "dumpStation": "No",
+    "firewoodForSale": "No",
+    "foodStorageLockers": "Yes - seasonal",
+    "iceAvailableForSale": "No",
+    "internetConnectivity": "No",
+    "laundry": "No",
+    "potableWater": [
+     "Yes - seasonal"
+    ],
+    "showers": [
+     "None"
+    ],
+    "staffOrVolunteerHostOnsite": "Yes - seasonal",
+    "toilets": [
+     "Flush Toilets - seasonal"
+    ],
+    "trashRecyclingCollection": "Yes - seasonal"
+   },
+   "audioDescription": "",
+   "campsites": {
+    "electricalHookups": "0",
+    "group": "7",
+    "horse": "4",
+    "other": "115",
+    "rvOnly": "1",
+    "tentOnly": "162",
+    "totalSites": "289",
+    "walkBoatTo": "0"
+   },
+   "contacts": {
+    "emailAddresses": [
+     {
+      "description": "",
+      "emailAddress": "contact2860@example.com"
+     }
+    ],
+    "phoneNumbers": [
+     {
+      "description": "",
+      "extension": "",
+      "phoneNumber": "555-0162",
+      "type": "Voice"
+     }
+    ]
+   },
+   "description": "Tuolumne Meadows Campground is Yosemite\u2019s largest, and is located along the Tioga Road, with some areas located near the Tuolumne River. At 8,000 feet (2,600 m) this campground is open seasonally and \u2026",
+   "directionsOverview": "The Tuolumne Meadows Campground is located along the Tioga Road. From Hwy. 120 east/Tioga Pass, the Tuolumne Meadows Campground is located approximately 17 miles west on the left. From Yosemite Valley\u2026",
+   "directionsUrl": "https://www.nps.gov/yose/planyourvisit/driving.htm",
+   "fees": [
+    {
+     "cost": "36.00",
+     "description": "Tuolumne Meadows Campground Reservation Fee - Standard Sites (RV or Tent) and Tent Only Sites (non-group site)/night",
+     "title": "Tuolumne Meadows Campground Fee - Non Group Site"
+    },
+    {
+     "cost": "75.00",
+     "description": "Tuolumne Meadows Campground Group Site Fee - Group Site/night",
+     "title": "Tuolumne Meadows Campground Group Site Fee - Group Site"
+    },
+    {
+     "cost": "50.00",
+     "description": "Tuolumne Meadows Campground Stock Site Fee - Stock Site/night",
+     "title": "Tuolumne Meadows Campground Stock Site Fee - Stock Site"
+    }
+   ],
+   "geometryPoiId": "B91EA7C6-7912-47E2-A408-6C4D8EDD4C20",
+   "id": "793AAB2C-885E-44F7-A0A1-D64B37291338",
+   "isPassportStampLocation": "0",
+   "lastIndexedDate": "",
+   "latLong": "{lat:37.8744752916, lng:-119.353650884}",
+   "latitude": "37.8744752916",
+   "longitude": "-119.353650884",
+   "name": "Tuolumne Meadows Campground",
+   "numberOfSitesFirstComeFirstServe": "0",
+   "numberOfSitesReservable": "289",
+   "operatingHours": [
+    {
+     "description": "Tuolumne Meadows is open seasonally from July through September for tents, RVs (up to 35 ft.) and trailers (up to 24 ft.). Exact dates vary. The opening date for the Tuolumne Meadows Campground varies\u2026",
+     "exceptions": [
+      {
+       "endDate": "2027-07-01",
+       "exceptionHours": {
+        "friday": "Closed",
+        "monday": "Closed",
+        "saturday": "Closed",
+        "sunday": "Closed",
+        "thursday": "Closed",
+        "tuesday": "Closed",
+        "wednesday": "Closed"
+       },
+       "name": "Seasonal Winter Closure",
+       "startDate": "2026-09-28"
+      }
+     ],
+     "name": "Tuolumne Meadows Campground",
+     "standardHours": {
+      "friday": "All Day",
+      "monday": "All Day",
+      "saturday": "All Day",
+      "sunday": "All Day",
+      "thursday": "All Day",
+      "tuesday": "All Day",
+      "wednesday": "All Day"
+     }
+    }
+   ],
+   "parkCode": "yose",
+   "passportStampImages": [],
+   "passportStampLocationDescription": "",
+   "regulationsOverview": "<b>Pets:</b> Permitted (except in group sites); must be on a leash at all times. <b>Fires:</b> Wood and charcoal fires are permitted. <b>People per site:</b> A maximum of six people (including childre\u2026",
+   "regulationsurl": "https://www.nps.gov/yose/planyourvisit/campregs.htm",
+   "relevanceScore": 1.0,
+   "reservationInfo": "During the campground's open season (approx. July - September), all sites are only available by reservation. About half the campsites are available in blocks of one month at a time, up to two months i\u2026",
+   "reservationUrl": "https://www.recreation.gov/camping/campgrounds/232448",
+   "url": "https://www.nps.gov/yose/planyourvisit/tmcamp.htm",
+   "weatherOverview": "Yosemite National Park covers nearly 1,200 square miles (3,100 square km) in the Sierra Nevada, with elevations ranging from about 2,000 feet (600 m) to 13,000 ft (4,000 m). Yosemite receives 95% of i\u2026"
+  },
+  {
+   "accessibility": {
+    "accessRoads": [
+     "Unpaved Roads - All vehicles OK in good weather"
+    ],
+    "adaInfo": "The Tuolumne Meadows Horse Camp sites are not accessible.",
+    "additionalInfo": "Each campsite contains a <b>fire ring</b>, <b>picnic table</b>, and a <b>food locker</b> and is near a <b>bathroom with drinking water and flushing toilets</b>. In Tuolumne Meadows food lockers measur\u2026",
+    "cellPhoneInfo": "",
+    "classifications": [
+     "Developed Campground"
+    ],
+    "fireStovePolicy": "Wood and charcoal fires are permitted when the campground is in use/open.",
+    "internetInfo": "",
+    "rvAllowed": "0",
+    "rvInfo": "Maximum trailer length allowed is 27 feet. There is a limit of two vehicles and two stock trailers per parking area.",
+    "rvMaxLength": "0",
+    "trailerAllowed": "1",
+    "trailerMaxLength": "27",
+    "wheelchairAccess": "The Tuolumne Meadows Horse Camp sites are not accessible."
+   },
+   "addresses": [],
+   "amenities": {
+    "amphitheater": "Yes - seasonal",
+    "campStore": "No",
+    "cellPhoneReception": "Yes - seasonal",
+    "dumpStation": "No",
+    "firewoodForSale": "No",
+    "foodStorageLockers": "Yes - seasonal",
+    "iceAvailableForSale": "No",
+    "internetConnectivity": "No",
+    "laundry": "No",
+    "potableWater": [
+     "Yes - seasonal"
+    ],
+    "showers": [
+     "None"
+    ],
+    "staffOrVolunteerHostOnsite": "Yes - seasonal",
+    "toilets": [
+     "Flush Toilets - seasonal"
+    ],
+    "trashRecyclingCollection": "Yes - seasonal"
+   },
+   "audioDescription": "",
+   "campsites": {
+    "electricalHookups": "0",
+    "group": "0",
+    "horse": "4",
+    "other": "0",
+    "rvOnly": "0",
+    "tentOnly": "0",
+    "totalSites": "4",
+    "walkBoatTo": "0"
+   },
+   "contacts": {
+    "emailAddresses": [
+     {
+      "description": "",
+      "emailAddress": "contact2860@example.com"
+     }
+    ],
+    "phoneNumbers": [
+     {
+      "description": "",
+      "extension": "",
+      "phoneNumber": "555-0162",
+      "type": "Voice"
+     }
+    ]
+   },
+   "description": "Tuolumne Meadows Horse Campsites are located within Tuolumne Meadows Campground along the Tioga Road. At 8,000 feet (2,600 m) this campground is open seasonally and has wonderful summer access to many\u2026",
+   "directionsOverview": "The Tuolumne Meadows Campground is located along the Tioga Road. From Hwy. 120 east/Tioga Pass, the Tuolumne Meadows Campground is located approximately 17 miles west on the left. From Yosemite Valley\u2026",
+   "directionsUrl": "https://www.nps.gov/yose/planyourvisit/driving.htm",
+   "fees": [
+    {
+     "cost": "50.00",
+     "description": "Stock Site",
+     "title": "Tuolumne Meadows Horse Camp Stock Site Fee - Stock Site"
+    }
+   ],
+   "geometryPoiId": "CD9736B1-73B7-4012-8DEF-907480AC7276",
+   "id": "45D3FDD7-DB1F-4DCE-83BD-B5C6EFA683DD",
+   "isPassportStampLocation": "0",
+   "lastIndexedDate": "",
+   "latLong": "{lat:37.87059758104315, lng:-119.35562371798807}",
+   "latitude": "37.87059758104315",
+   "longitude": "-119.35562371798807",
+   "name": "Tuolumne Meadows Horse Camp",
+   "numberOfSitesFirstComeFirstServe": "0",
+   "numberOfSitesReservable": "4",
+   "operatingHours": [
+    {
+     "description": "Tuolumne Meadows Horse Camp reservations are required from July through September (dates vary). October. During the rest of the year the campground is closed. Reservations are required and can be made\u2026",
+     "exceptions": [
+      {
+       "endDate": "2027-07-15",
+       "exceptionHours": {
+        "friday": "Closed",
+        "monday": "Closed",
+        "saturday": "Closed",
+        "sunday": "Closed",
+        "thursday": "Closed",
+        "tuesday": "Closed",
+        "wednesday": "Closed"
+       },
+       "name": "Seasonal Winter Closure",
+       "startDate": "2026-09-27"
+      }
+     ],
+     "name": "Tuolumne Horse Campsites",
+     "standardHours": {
+      "friday": "All Day",
+      "monday": "All Day",
+      "saturday": "All Day",
+      "sunday": "All Day",
+      "thursday": "All Day",
+      "tuesday": "All Day",
+      "wednesday": "All Day"
+     }
+    }
+   ],
+   "parkCode": "yose",
+   "passportStampImages": [],
+   "passportStampLocationDescription": "",
+   "regulationsOverview": "<b>Pets:</b> Permitted; must be on a leash at all times. <b>Fires:</b> Wood and charcoal fires are permitted. <b>People per site:</b> A maximum of six people and six head of stock are allowed per camp\u2026",
+   "regulationsurl": "https://www.nps.gov/yose/planyourvisit/campregs.htm",
+   "relevanceScore": 1.0,
+   "reservationInfo": "Tuolumne Meadows Horse Camp reservations are required from early July through September. During the rest of the year the campground is closed. Campground reservations are available in blocks of one mo\u2026",
+   "reservationUrl": "https://www.recreation.gov/camping/campgrounds/10346420",
+   "url": "https://www.nps.gov/yose/planyourvisit/tmhorsecamp.htm",
+   "weatherOverview": "Yosemite National Park covers nearly 1,200 square miles (3,100 square km) in the Sierra Nevada, with elevations ranging from about 2,000 feet (600 m) to 13,000 feet (4,000 m). Yosemite receives 95% of\u2026"
+  }
+ ],
+ "limit": "50",
+ "start": "0",
+ "total": "5"
+}

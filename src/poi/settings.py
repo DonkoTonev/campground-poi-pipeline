@@ -19,7 +19,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=PROJECT_ROOT / ".env", env_file_encoding="utf-8", extra="ignore"
+        env_file=PROJECT_ROOT / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        env_ignore_empty=True,  # `RIDB_API_KEY=` means "not configured", not "empty key"
     )
 
     database_url: str = "postgresql+psycopg://poi:poi@localhost:5433/poi"
@@ -34,6 +37,10 @@ class Settings(BaseSettings):
 
     # Crawler / API client identity. The contact URL is required for any outbound request.
     contact_url: str | None = None
+
+    overpass_url: str = "https://overpass-api.de/api/interpreter"
+    ridb_base_url: str = "https://ridb.recreation.gov/api/v1"
+    nps_base_url: str = "https://developer.nps.gov/api/v1"
 
     anthropic_api_key: SecretStr | None = None
     ridb_api_key: SecretStr | None = None

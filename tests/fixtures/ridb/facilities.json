@@ -1,0 +1,582 @@
+{
+ "METADATA": {
+  "RESULTS": {
+   "CURRENT_COUNT": 5,
+   "TOTAL_COUNT": 5
+  }
+ },
+ "RECDATA": [
+  {
+   "ACTIVITY": [
+    {
+     "ActivityID": 9,
+     "ActivityName": "CAMPING",
+     "FacilityActivityDescription": "Camping",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "232450"
+    }
+   ],
+   "Enabled": true,
+   "FACILITYADDRESS": [
+    {
+     "AddressCountryCode": "USA",
+     "AddressStateCode": "CA",
+     "City": "Yosemite National Park ",
+     "FacilityAddressID": "20437810",
+     "FacilityAddressType": "Default",
+     "FacilityID": "232450",
+     "FacilityStreetAddress1": "PO BOX 577, 9024 Southside Drive",
+     "FacilityStreetAddress2": "",
+     "FacilityStreetAddress3": "",
+     "LastUpdatedDate": "2026-10-15",
+     "PostalCode": "95389"
+    },
+    {
+     "AddressCountryCode": "",
+     "AddressStateCode": "CA",
+     "City": "Yosemite National Park",
+     "FacilityAddressID": "2324501000",
+     "FacilityAddressType": "Physical",
+     "FacilityID": "232450",
+     "FacilityStreetAddress1": "9024 Southside Drive",
+     "FacilityStreetAddress2": "",
+     "FacilityStreetAddress3": "",
+     "LastUpdatedDate": "2026-10-15",
+     "PostalCode": "95389"
+    }
+   ],
+   "FacilityAccessibilityText": "",
+   "FacilityAdaAccess": "N",
+   "FacilityDescription": "<h2>Overview</h2>\n<p>Lower Pines campsites are available to reserve up to five months in advance on the 15th of each month at 7:00 a.m. PST. For example, on January 15, <strong>arrival </strong>dates \u2026",
+   "FacilityDirections": "Take Highway 41 north from Fresno, Highway 140 east from Merced, or Highway 120 east from Manteca into Yosemite National Park. Follow signs to Yosemite Valley and the campgrounds.",
+   "FacilityEmail": "",
+   "FacilityID": "232450",
+   "FacilityLatitude": 37.7408333,
+   "FacilityLongitude": -119.5666667,
+   "FacilityMapURL": "",
+   "FacilityName": "Lower Pines Campground",
+   "FacilityPhone": "555-0139",
+   "FacilityReservationURL": "",
+   "FacilityTypeDescription": "Campground",
+   "FacilityUseFeeDescription": "",
+   "GEOJSON": {
+    "COORDINATES": [
+     -119.5666667,
+     37.7408333
+    ],
+    "TYPE": "Point"
+   },
+   "Keywords": "Yosemite National Park,The Valley",
+   "LINK": [
+    {
+     "Description": "Yosemite Park Lodging",
+     "EntityID": "232450",
+     "EntityLinkID": "r1scgl65f44231-60e8-4b34-ae78-ad6215e5caf5",
+     "EntityType": "Facility",
+     "LinkType": "Other",
+     "Title": "National Park Services Concessionaire",
+     "URL": "http://www.yosemitepark.com/"
+    },
+    {
+     "Description": "California State Tourism",
+     "EntityID": "232450",
+     "EntityLinkID": "r1scgl00a0efd9-383f-4ac5-a0c5-77568470545c",
+     "EntityType": "Facility",
+     "LinkType": "Other",
+     "Title": "California State Tourism",
+     "URL": "http://gocalif.ca.gov/AM/Template.cfm?Section=Home"
+    },
+    {
+     "Description": "California State Road Conditions",
+     "EntityID": "232450",
+     "EntityLinkID": "r1scgl6a9edcd2-34af-41a4-8bc1-e050fe858774",
+     "EntityType": "Facility",
+     "LinkType": "Other",
+     "Title": "California State Road Conditions",
+     "URL": "http://www.dot.ca.gov"
+    }
+   ],
+   "LastUpdatedDate": "2026-10-15",
+   "LegacyFacilityID": "70928",
+   "ORGANIZATION": [
+    {
+     "LastUpdatedDate": "2018-06-26",
+     "OrgAbbrevName": "NPS",
+     "OrgID": "128",
+     "OrgImageURL": "nps.gif",
+     "OrgJurisdictionType": "State",
+     "OrgName": "National Park Service",
+     "OrgParentID": "139",
+     "OrgType": "Federal Agency",
+     "OrgURLAddress": "http://www.nps.gov",
+     "OrgURLText": ""
+    }
+   ],
+   "OrgFacilityID": "AN370928",
+   "ParentOrgID": "128",
+   "ParentRecAreaID": "2991",
+   "RECAREA": [
+    {
+     "RecAreaID": "2991",
+     "RecAreaName": "Yosemite National Park",
+     "ResourceLink": "http://localhost:3000/api/v1/recareas/2991"
+    }
+   ],
+   "Reservable": true,
+   "StayLimit": ""
+  },
+  {
+   "ACTIVITY": [
+    {
+     "ActivityID": 9,
+     "ActivityName": "CAMPING",
+     "FacilityActivityDescription": "Camping",
+     "FacilityActivityFeeDescription": "Camping",
+     "FacilityID": "232449"
+    }
+   ],
+   "Enabled": true,
+   "FACILITYADDRESS": [
+    {
+     "AddressCountryCode": "",
+     "AddressStateCode": "CA",
+     "City": "Yosemite national Park",
+     "FacilityAddressID": "2324491000",
+     "FacilityAddressType": "Physical",
+     "FacilityID": "232449",
+     "FacilityStreetAddress1": "9024 Southside Drive",
+     "FacilityStreetAddress2": "",
+     "FacilityStreetAddress3": "",
+     "LastUpdatedDate": "2026-11-10",
+     "PostalCode": "95389"
+    },
+    {
+     "AddressCountryCode": "USA",
+     "AddressStateCode": "CA",
+     "City": "Yosemite National Park",
+     "FacilityAddressID": "20437809",
+     "FacilityAddressType": "Default",
+     "FacilityID": "232449",
+     "FacilityStreetAddress1": "PO BOX 577,    9024 Southside Drive",
+     "FacilityStreetAddress2": "",
+     "FacilityStreetAddress3": "",
+     "LastUpdatedDate": "2026-11-10",
+     "PostalCode": "95389"
+    }
+   ],
+   "FacilityAccessibilityText": "",
+   "FacilityAdaAccess": "N",
+   "FacilityDescription": "<h2>Overview</h2>\n<p><strong>For the 2027 season, North Pines campground will utilize a one-time Early Access Lottery that allows successful applicants to make a reservation within the entire 2027 sea\u2026",
+   "FacilityDirections": "Take Highway 41 north from Fresno, Highway 140 east from Merced, or Highway 120 east from Manteca into Yosemite National Park. Follow signs to Yosemite Valley and the campgrounds.",
+   "FacilityEmail": "",
+   "FacilityID": "232449",
+   "FacilityLatitude": 37.7419444,
+   "FacilityLongitude": -119.5655556,
+   "FacilityMapURL": "",
+   "FacilityName": "North Pines Campground",
+   "FacilityPhone": "555-0139",
+   "FacilityReservationURL": "",
+   "FacilityTypeDescription": "Campground",
+   "FacilityUseFeeDescription": "",
+   "GEOJSON": {
+    "COORDINATES": [
+     -119.5655556,
+     37.7419444
+    ],
+    "TYPE": "Point"
+   },
+   "Keywords": "Yosemite National Park,The Valley",
+   "LINK": [
+    {
+     "Description": "Yosemite Park Lodging",
+     "EntityID": "232449",
+     "EntityLinkID": "r1scgl7c99954d-27ad-4c99-aca1-02f1436dad75",
+     "EntityType": "Facility",
+     "LinkType": "Other",
+     "Title": "National Park Services Concessionaire",
+     "URL": "http://www.yosemitepark.com/"
+    },
+    {
+     "Description": "California State Tourism",
+     "EntityID": "232449",
+     "EntityLinkID": "r1scgl3e6826d9-872b-4e8e-9476-c169b9374489",
+     "EntityType": "Facility",
+     "LinkType": "Other",
+     "Title": "California State Tourism",
+     "URL": "http://gocalif.ca.gov/AM/Template.cfm?Section=Home"
+    },
+    {
+     "Description": "California State Road Conditions",
+     "EntityID": "232449",
+     "EntityLinkID": "r1scgl59ca912d-b910-45ab-926f-f716cb8c6a71",
+     "EntityType": "Facility",
+     "LinkType": "Other",
+     "Title": "California State Road Conditions",
+     "URL": "http://www.dot.ca.gov"
+    }
+   ],
+   "LastUpdatedDate": "2026-11-10",
+   "LegacyFacilityID": "70927",
+   "ORGANIZATION": [
+    {
+     "LastUpdatedDate": "2018-06-26",
+     "OrgAbbrevName": "NPS",
+     "OrgID": "128",
+     "OrgImageURL": "nps.gif",
+     "OrgJurisdictionType": "State",
+     "OrgName": "National Park Service",
+     "OrgParentID": "139",
+     "OrgType": "Federal Agency",
+     "OrgURLAddress": "http://www.nps.gov",
+     "OrgURLText": ""
+    }
+   ],
+   "OrgFacilityID": "AN370927",
+   "ParentOrgID": "128",
+   "ParentRecAreaID": "2991",
+   "RECAREA": [
+    {
+     "RecAreaID": "2991",
+     "RecAreaName": "Yosemite National Park",
+     "ResourceLink": "http://localhost:3000/api/v1/recareas/2991"
+    }
+   ],
+   "Reservable": true,
+   "StayLimit": ""
+  },
+  {
+   "ACTIVITY": [
+    {
+     "ActivityID": 9,
+     "ActivityName": "CAMPING",
+     "FacilityActivityDescription": "Camping",
+     "FacilityActivityFeeDescription": "Camping",
+     "FacilityID": "232447"
+    }
+   ],
+   "Enabled": true,
+   "FACILITYADDRESS": [
+    {
+     "AddressCountryCode": "USA",
+     "AddressStateCode": "CA",
+     "City": "Yosemite National Park",
+     "FacilityAddressID": "20437807",
+     "FacilityAddressType": "Mailing",
+     "FacilityID": "232447",
+     "FacilityStreetAddress1": "PO BOX 577",
+     "FacilityStreetAddress2": "",
+     "FacilityStreetAddress3": "",
+     "LastUpdatedDate": "2026-11-10",
+     "PostalCode": "95389"
+    },
+    {
+     "AddressCountryCode": "",
+     "AddressStateCode": "CA",
+     "City": "Yosemite National Park",
+     "FacilityAddressID": "2324471000",
+     "FacilityAddressType": "Physical",
+     "FacilityID": "232447",
+     "FacilityStreetAddress1": "9024 Southside Drive",
+     "FacilityStreetAddress2": "",
+     "FacilityStreetAddress3": "",
+     "LastUpdatedDate": "2026-11-10",
+     "PostalCode": "95389"
+    }
+   ],
+   "FacilityAccessibilityText": "",
+   "FacilityAdaAccess": "N",
+   "FacilityDescription": "<h2>Overview</h2>\n<p>Upper Pines campsites are available to reserve up to five months in advance on the 15th of each month at 7:00 a.m. PST. For example, on January 15, <strong>arrival</strong> dates \u2026",
+   "FacilityDirections": "Take Highway 41 north from Fresno, Highway 140 east from Merced, or Highway 120 east from Manteca into Yosemite National Park. Follow signs to Yosemite Valley and the campgrounds.",
+   "FacilityEmail": "",
+   "FacilityID": "232447",
+   "FacilityLatitude": 37.7361111,
+   "FacilityLongitude": -119.5625,
+   "FacilityMapURL": "",
+   "FacilityName": "Upper Pines Campground",
+   "FacilityPhone": "555-0139",
+   "FacilityReservationURL": "",
+   "FacilityTypeDescription": "Campground",
+   "FacilityUseFeeDescription": "",
+   "GEOJSON": {
+    "COORDINATES": [
+     -119.5625,
+     37.7361111
+    ],
+    "TYPE": "Point"
+   },
+   "Keywords": "Yosemite National Park,The Valley",
+   "LINK": [
+    {
+     "Description": "Yosemite Park Lodging",
+     "EntityID": "232447",
+     "EntityLinkID": "r1scgle682bc87-6d87-4329-8fa1-91a0673a6a65",
+     "EntityType": "Facility",
+     "LinkType": "Other",
+     "Title": "National Park Services Concessionaire",
+     "URL": "http://www.yosemitepark.com/"
+    },
+    {
+     "Description": "California State Tourism",
+     "EntityID": "232447",
+     "EntityLinkID": "r1scgl01beffef-04d8-465f-a564-f780a4b8b708",
+     "EntityType": "Facility",
+     "LinkType": "Other",
+     "Title": "California State Tourism",
+     "URL": "http://gocalif.ca.gov/AM/Template.cfm?Section=Home"
+    },
+    {
+     "Description": "California State Road Conditions",
+     "EntityID": "232447",
+     "EntityLinkID": "r1scglbf94c811-8ed3-417b-bde0-2a21b41bc536",
+     "EntityType": "Facility",
+     "LinkType": "Other",
+     "Title": "California State Road Conditions",
+     "URL": "http://www.dot.ca.gov"
+    }
+   ],
+   "LastUpdatedDate": "2026-11-10",
+   "LegacyFacilityID": "70925",
+   "ORGANIZATION": [
+    {
+     "LastUpdatedDate": "2018-06-26",
+     "OrgAbbrevName": "NPS",
+     "OrgID": "128",
+     "OrgImageURL": "nps.gif",
+     "OrgJurisdictionType": "State",
+     "OrgName": "National Park Service",
+     "OrgParentID": "139",
+     "OrgType": "Federal Agency",
+     "OrgURLAddress": "http://www.nps.gov",
+     "OrgURLText": ""
+    }
+   ],
+   "OrgFacilityID": "AN370925",
+   "ParentOrgID": "128",
+   "ParentRecAreaID": "2991",
+   "RECAREA": [
+    {
+     "RecAreaID": "2991",
+     "RecAreaName": "Yosemite National Park",
+     "ResourceLink": "http://localhost:3000/api/v1/recareas/2991"
+    }
+   ],
+   "Reservable": true,
+   "StayLimit": ""
+  },
+  {
+   "ACTIVITY": [],
+   "Enabled": true,
+   "FACILITYADDRESS": [],
+   "FacilityAccessibilityText": "",
+   "FacilityAdaAccess": "",
+   "FacilityDescription": "",
+   "FacilityDirections": "Directions",
+   "FacilityEmail": "",
+   "FacilityID": "445859",
+   "FacilityLatitude": 37.84883288,
+   "FacilityLongitude": -119.5571873,
+   "FacilityMapURL": "",
+   "FacilityName": "Yosemite National Park Wilderness Permits",
+   "FacilityPhone": "",
+   "FacilityReservationURL": "",
+   "FacilityTypeDescription": "Permit",
+   "FacilityUseFeeDescription": "",
+   "GEOJSON": {
+    "COORDINATES": [
+     -119.5571873,
+     37.84883288
+    ],
+    "TYPE": "Point"
+   },
+   "Keywords": "",
+   "LINK": [],
+   "LastUpdatedDate": "2026-02-25",
+   "LegacyFacilityID": "",
+   "ORGANIZATION": [
+    {
+     "LastUpdatedDate": "2018-06-26",
+     "OrgAbbrevName": "NPS",
+     "OrgID": "128",
+     "OrgImageURL": "nps.gif",
+     "OrgJurisdictionType": "State",
+     "OrgName": "National Park Service",
+     "OrgParentID": "139",
+     "OrgType": "Federal Agency",
+     "OrgURLAddress": "http://www.nps.gov",
+     "OrgURLText": ""
+    }
+   ],
+   "OrgFacilityID": "",
+   "ParentOrgID": "128",
+   "ParentRecAreaID": "2991",
+   "RECAREA": [
+    {
+     "RecAreaID": "2991",
+     "RecAreaName": "Yosemite National Park",
+     "ResourceLink": "http://localhost:3000/api/v1/recareas/2991"
+    }
+   ],
+   "Reservable": true,
+   "StayLimit": ""
+  },
+  {
+   "ACTIVITY": [
+    {
+     "ActivityID": 100036,
+     "ActivityName": "BACKPACKING",
+     "FacilityActivityDescription": "Backpacking",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 9,
+     "ActivityName": "CAMPING",
+     "FacilityActivityDescription": "Camping",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 28,
+     "ActivityName": "WILDERNESS",
+     "FacilityActivityDescription": "Wilderness",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 100017,
+     "ActivityName": "BIRDING",
+     "FacilityActivityDescription": "Birding",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 14,
+     "ActivityName": "HIKING",
+     "FacilityActivityDescription": "Hiking",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 109,
+     "ActivityName": "HORSE CAMPING",
+     "FacilityActivityDescription": "Horse Camping",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 100041,
+     "ActivityName": "ROCK CLIMBING",
+     "FacilityActivityDescription": "Rock Climbing",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 26,
+     "ActivityName": "WILDLIFE VIEWING",
+     "FacilityActivityDescription": "Wildlife Viewing",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 100029,
+     "ActivityName": "SCENIC DRIVE",
+     "FacilityActivityDescription": "Scenic Drive",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 100019,
+     "ActivityName": "WATER ACCESS",
+     "FacilityActivityDescription": "Water Access",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 20,
+     "ActivityName": "PICNICKING",
+     "FacilityActivityDescription": "Picnicking",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 104,
+     "ActivityName": "PHOTOGRAPHY",
+     "FacilityActivityDescription": "Photography",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    },
+    {
+     "ActivityID": 100015,
+     "ActivityName": "STAR GAZING",
+     "FacilityActivityDescription": "Star Gazing",
+     "FacilityActivityFeeDescription": "",
+     "FacilityID": "10390880"
+    }
+   ],
+   "Enabled": true,
+   "FACILITYADDRESS": [
+    {
+     "AddressCountryCode": "",
+     "AddressStateCode": "CA",
+     "City": "Yosemite",
+     "FacilityAddressID": "103908800",
+     "FacilityAddressType": "Mailing",
+     "FacilityID": "10390880",
+     "FacilityStreetAddress1": "Yosemite National Park",
+     "FacilityStreetAddress2": "Attn: Fees",
+     "FacilityStreetAddress3": "PO Box 577",
+     "LastUpdatedDate": "2026-08-19",
+     "PostalCode": "95389"
+    }
+   ],
+   "FacilityAccessibilityText": "",
+   "FacilityAdaAccess": "",
+   "FacilityDescription": "<h2>Overview</h2>\n<p><strong>Bridalveil Creek Horse Campsites are closed for the season.</strong></p><p>Staying at Bridalveil Creek Horse Campsites requires reservations <strong>and a horse</strong>.<\u2026",
+   "FacilityDirections": "<p>Take Highway 41 north from Fresno, Highway 140 east from Merced, or Highway 120 east from Manteca into Yosemite National Park. Follow signs to Glacier Point Road (located off Highway 41). The campg\u2026",
+   "FacilityEmail": "n/a",
+   "FacilityID": "10390880",
+   "FacilityLatitude": 0,
+   "FacilityLongitude": 0,
+   "FacilityMapURL": "",
+   "FacilityName": "Bridalveil Creek Horse Campsites",
+   "FacilityPhone": "555-0120",
+   "FacilityReservationURL": "",
+   "FacilityTypeDescription": "Campground",
+   "FacilityUseFeeDescription": "",
+   "GEOJSON": {
+    "COORDINATES": null,
+    "TYPE": ""
+   },
+   "Keywords": "",
+   "LINK": [],
+   "LastUpdatedDate": "2026-08-19",
+   "LegacyFacilityID": "10390880",
+   "ORGANIZATION": [
+    {
+     "LastUpdatedDate": "2018-06-26",
+     "OrgAbbrevName": "NPS",
+     "OrgID": "128",
+     "OrgImageURL": "nps.gif",
+     "OrgJurisdictionType": "State",
+     "OrgName": "National Park Service",
+     "OrgParentID": "139",
+     "OrgType": "Federal Agency",
+     "OrgURLAddress": "http://www.nps.gov",
+     "OrgURLText": ""
+    }
+   ],
+   "OrgFacilityID": "",
+   "ParentOrgID": "128",
+   "ParentRecAreaID": "2991",
+   "RECAREA": [
+    {
+     "RecAreaID": "2991",
+     "RecAreaName": "Yosemite National Park",
+     "ResourceLink": "http://localhost:3000/api/v1/recareas/2991"
+    }
+   ],
+   "Reservable": true,
+   "StayLimit": ""
+  }
+ ]
+}

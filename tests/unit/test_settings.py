@@ -21,3 +21,8 @@ def test_user_agent_requires_contact_url() -> None:
         _ = Settings(contact_url=None, _env_file=None).user_agent  # type: ignore[call-arg]
     ua = Settings(contact_url="https://example.org/me", _env_file=None).user_agent  # type: ignore[call-arg]
     assert "+https://example.org/me" in ua
+
+
+def test_empty_key_counts_as_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RIDB_API_KEY", "")
+    assert Settings(_env_file=None).ridb_api_key is None  # type: ignore[call-arg]
