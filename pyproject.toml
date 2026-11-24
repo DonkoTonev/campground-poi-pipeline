@@ -7,7 +7,9 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic>=1.20.1",
     "boto3>=1.44.10",
+    "extruct>=0.18.0",
     "httpx>=0.28.1",
+    "markdownify>=1.2.4",
     "phonenumbers>=9.0.44",
     "psycopg[binary]>=3.2",
     "pydantic>=2.14.4",
@@ -22,6 +24,7 @@ dependencies = [
     "structlog>=26.1.0",
     "tenacity>=9.2.1",
     "tldextract>=5.4.0",
+    "trafilatura>=2.4.0",
     "typer>=0.29.2",
 ]
 
@@ -58,12 +61,16 @@ packages = ["poi"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["alembic.*"]
+module = ["alembic.*", "extruct.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+filterwarnings = [
+  # trafilatura imports urllib3's SOCKS support, which we do not use
+  "ignore::urllib3.exceptions.DependencyWarning",
+]
 markers = [
   "integration: needs Postgres/PostGIS (docker compose up, or CI service)",
   "live: hits real external APIs; opt-in via POI_LIVE_TESTS=1",
