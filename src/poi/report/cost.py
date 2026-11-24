@@ -1,21 +1,18 @@
-"""`poi report cost`: what extraction cost, what it would cost on Claude, and at scale.
+"""`poi report cost`: what extraction cost, per input, and what it would cost at scale.
 
-All token numbers come from the `llm_calls` ledger (real provider counts) and the latest
-reduce run. Live runs used Gemini's free tier, so the billed cost is $0; the Claude columns
-price the same token counts with config/pricing.yaml and are estimates (another provider's
-tokenizer, no caching assumed unless stated).
+All token numbers come from the `llm_calls` ledger (the provider's own counts) and the latest
+reduce run. Prices come from config/pricing.yaml. Until a live run has happened, the report
+says so and shows no extraction numbers.
 """
 
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, cast
 
 from sqlalchemy import Connection, text
 
 from poi.extract.llm.base import Usage
 from poi.extract.pricing import HAIKU, billed
-from poi.settings import load_yaml
 
 
 def _haiku(tokens_in: float, tokens_out: float, batch: bool = False) -> float:
@@ -79,18 +76,27 @@ def cost_report(conn: Connection, region: str) -> str:
     haiku_total = sum(float(c.haiku or 0) for c in calls)
     strong = sum(c.n for c in calls if c.ladder_step == "strong")
     cached = sum(float(c.cached or 0) for c in calls)
-    cfg = cast(dict[str, Any], load_yaml("pricing.yaml"))
 
+    providers = sorted({c.provider for c in calls})
+    if not calls:
+        status = (
+            "**The LLM extraction stage is implemented and tested with fixtures, but has "
+            "not been run live yet.** No extraction cost has been measured; this report "
+            "fills in after the first live run."
+        )
+    else:
+        status = (
+            f"Live extraction calls in the ledger: provider(s) {', '.join(providers)}. "
+            "Billed amounts are list prices from `config/pricing.yaml`; the Haiku column "
+            "prices the same token counts on Claude Haiku 5.5 without caching (a reference "
+            "point for Claude calls, an estimate for other providers)."
+        )
     lines = [
         "# Cost report",
         "",
         f"Region `{region}`, generated {date.today().isoformat()} from the `llm_calls` ledger.",
         "",
-        "**Live runs used Gemini's free tier (billed $0). The Claude path is implemented and "
-        "tested with fixtures but was not run live, for budget reasons. Every Claude figure "
-        "below is an estimate:** the token counts are Gemini's, priced with "
-        f"`config/pricing.yaml` (Haiku 5.5: ${cfg['anthropic']['models'][HAIKU]['input']}/"
-        f"${cfg['anthropic']['models'][HAIKU]['output']} per 1M input/output tokens).",
+        status,
         "",
         "## Calls",
         "",
