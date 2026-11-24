@@ -9,7 +9,7 @@ Website-extracted records later join matching as one more source (M7), and we me
 | M0 | Bootstrap: repo, tooling, compose (PostGIS, Elasticsearch), CI, pre-commit + gitleaks, baseline migration | ✅ done |
 | M1 | Ingest OSM (Overpass), RIDB, NPS → raw store + `source_records`; counts per source | ✅ done |
 | M2 | Canonical model: normalization + validation flags (names, contact, geometry, categories, seasons) | ✅ done |
-| M3 | Entity resolution on structured sources: blocking, features, log-odds scoring, constrained clustering, hierarchy; label CLI, ER gold set + eval | ⏳ awaiting verified labels |
+| M3 | Entity resolution on structured sources: blocking, features, log-odds scoring, constrained clustering, hierarchy; label CLI, ER gold set + eval | ✅ measured on Claude-drafted labels; human verification of 50 pending |
 | M4 | Golden records: survivorship, stable IDs + redirects, overrides, quality score; quality / changes reports | ✅ done |
 | M5 | Responsible crawler seeded from M1 records; crawl stats | ✅ done |
 | M6 | Reduce + deterministic extraction; token metrics per representation | ✅ done |
@@ -59,7 +59,10 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] All §10 matching edge cases as unit tests; idempotent stage integration test
 - [x] Gold set suggestion (200 pairs, stratified) and `poi review label`
 - [ ] Labels verified by a person
-- [ ] `poi eval er` on verified labels, thresholds tuned, numbers in README
+- [x] All 200 pairs labelled by Claude blind to score and decision, with rationales (`labeled_by: claude`)
+- [x] Random 50 drawn for human verification; `poi eval er` reports P/R, agreement, disagreements
+- [ ] Human verification of the 50 (`poi review label`), agreement rate in README
+- [ ] Threshold decision after verification (sweep in reports/er_eval.md)
 
 ## M4 checklist
 - [x] `entities`, `entity_members`, `entity_fields` (value, provenance, reason, alternatives), `entity_redirects`, `entity_changes` (migration 0005)
@@ -116,4 +119,4 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] README with architecture, quick start, measured results, edge cases, decisions, limitations
 - [x] DESIGN: cost ladder, entity resolution and the 200 m question, survivorship, 1M POIs
 - [x] docs/aws.md production sketch
-- [ ] Live LLM numbers (waits for the API key) and ER precision/recall (waits for verified labels)
+- [ ] Live LLM numbers (waits for the API key) and the ER label agreement rate (waits for human verification)

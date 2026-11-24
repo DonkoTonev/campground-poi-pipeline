@@ -11,8 +11,8 @@ Sierra), where federal, state, county and private campgrounds sit close together
 > **Status.** Everything below the LLM stage is built and measured on real data. The LLM
 > extraction stage is **implemented and tested with fixtures, but has not been run live yet**,
 > so this README reports no extraction accuracy or cost; those sections fill in after the first
-> live run. Entity-resolution precision and recall wait for the gold labels to be verified by a
-> person. Progress: [docs/PLAN.md](docs/PLAN.md).
+> live run. Entity-resolution labels are Claude-drafted; the human check of a 50-pair sample is
+> pending. Progress: [docs/PLAN.md](docs/PLAN.md).
 
 ## Architecture
 
@@ -103,8 +103,16 @@ re-cased, 21 P.O.-box addresses, 7 records with (0,0) coordinates, 2 low-precisi
 **Entity resolution.** 379 campground records → **300 entities**: 79 duplicates merged,
 15 entities confirmed by all three sources, 45 by two; 36 pairs in the review queue; 5 group or
 horse areas attached to a parent campground. Upper, Lower and North Pines (within ~300 m) stay
-three entities, each confirmed by OSM, RIDB and NPS. Precision and recall: **not measured yet**;
-a stratified gold set of 200 pairs is waiting for a person to verify the suggested labels.
+three entities, each confirmed by OSM, RIDB and NPS.
+
+Labels: Claude-drafted labels, 50 human-verified, agreement pending (0/50 verified so far).
+The 200 stratified gold pairs were labelled by Claude from the two records alone, blind to the
+matcher's score and decision; a person verifies a random 50 without seeing those labels
+([reports/er_eval.md](reports/er_eval.md)). Against the drafted labels (189 decisive pairs,
+52 matches): precision **1.00** (95% CI 0.92–1.00), recall **0.87** (0.75–0.93), 0 false merges,
+7 missed matches (name variants such as "Agnew Meadows Horse Campground" vs "Agnew Horse
+Camp", and one OSM campground that two RIDB ids both claim, which the never-merge-two-RIDB-ids
+constraint keeps apart).
 
 **Golden records.** Each field is chosen by per-field source trust plus corroboration, with
 every alternative and its provenance kept. Mean quality score: 0.58 for single-source
@@ -200,7 +208,9 @@ Production sketch on AWS: [docs/aws.md](docs/aws.md).
 - Run the LLM stage live (dry run first) and report accuracy, cost per page and per 1,000 POIs,
   cache-hit and escalation rates, the representation ablation, and how much season and amenity
   coverage each input adds.
-- Verify the entity-resolution gold labels and report precision and recall; tune thresholds.
+- Finish the human check of the 50-pair ER sample and report the agreement rate; then decide
+  the merge threshold (pair-level sweep on the drafted labels: at 4, the current setting,
+  precision 1.00 / recall 0.88; at 2, precision 0.96 / recall 0.92).
 - One region; Forest Service websites are blocked for identified crawlers, so their facts come
   only from RIDB descriptions.
 - Token counts in the reduction report are estimates until calibrated with `count_tokens`.

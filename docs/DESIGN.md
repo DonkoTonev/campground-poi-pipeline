@@ -83,9 +83,14 @@ polygon becomes its child (`record_relations`), not a duplicate.
 
 **Evaluation.** `poi review suggest-gold` samples about 200 pairs stratified by score bin and
 oversampling hard cases (close but differently named, same name far apart, shared phone,
-similar names that blocking missed). Suggested labels come from the model and are marked
-unverified; `poi review label` hides them by default to avoid anchoring the reviewer.
-`poi eval er` reports precision and recall on verified labels only, with Wilson intervals.
+similar names that blocking missed). All 200 pairs were then labelled by Claude in a separate
+pass that saw only the two records and their distance, never the matcher's score or decision;
+each label has a one-line rationale (shared ids, distance, discriminator words) and is marked
+`labeled_by: claude`. A random 50 (fixed seed) are verified by a person with `poi review label`,
+which hides the drafted label, the rationale and the score bin. `poi eval er` reports
+precision and recall against the drafted labels and against the human sample, the agreement
+rate between the two, and every disagreement, with Wilson intervals. Drafted labels are
+not ground truth; the agreement rate says how far to trust them.
 
 ## Golden records, stable ids and manual fixes
 
