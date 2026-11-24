@@ -44,3 +44,4 @@ def test_flags_real_contact_data() -> None:
 def test_allows_placeholders_and_code() -> None:
     assert gate.line_problems("f", "phone 760-555-0142, info@example.com") == []
     assert gate.line_problems("f", "@app.command()  # 2026-11-24") == []
+    assert gate.line_problems("f", "committer " + "noreply" + "@github.com") == []

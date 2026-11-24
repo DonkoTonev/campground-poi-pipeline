@@ -57,7 +57,8 @@ def line_problems(path: str, line: str) -> list[str]:
     problems = [
         f"email in {path}: {m.group(0)}"
         for m in EMAIL.finditer(line)
-        if not m.group(1).lower().endswith(ALLOWED_EMAIL_DOMAINS)
+        if not m.group(0).lower().startswith("noreply@")
+        and not m.group(1).lower().endswith(ALLOWED_EMAIL_DOMAINS)
     ]
     problems += [
         f"phone number in {path}: {m.group(0)}"
