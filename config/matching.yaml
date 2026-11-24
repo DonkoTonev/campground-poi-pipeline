@@ -1,0 +1,56 @@
+# Entity resolution weights (log-odds contributions, Fellegi-Sunter style).
+# A pair's score = prior + sum of feature contributions; every contribution is stored with the
+# decision so each merge or split can be explained. Values are hand-set from domain reasoning,
+# then checked against the verified gold set (`poi eval er`).
+
+prior: -1.5
+
+thresholds:
+  match: 4.0        # auto-merge at or above. High precision: a false merge deletes a real POI.
+  non_match: 0.0    # auto-reject below. Between the two: review queue.
+
+blocking:
+  radius_m: 2000          # spatial candidate radius (polygon-aware)
+  precision_factor: 2.0   # low-precision records search max(radius, factor * precision_m)
+  name_similarity: 0.5    # pg_trgm similarity for name blocking (records with bad coordinates)
+
+distance:            # upper bound in metres -> contribution; distance is evidence, never a rule
+  - [50, 3.0]
+  - [150, 2.0]
+  - [500, 1.0]
+  - [1000, 0.5]
+  - [2000, -1.0]
+  - [5000, -3.0]
+  - [null, -5.0]
+unknown_distance: 0.0
+
+name:                # core-name similarity (0-100) lower bound -> contribution
+  - [95, 5.0]
+  - [85, 2.5]
+  - [70, 0.5]
+  - [50, -1.5]
+  - [0, -4.0]
+missing_name: -1.0   # no name on one side: no identity evidence beyond place
+alt_name_caps_at_review: true  # best similarity came from a former name: a rename, review it
+
+discriminators:
+  conflict: -8.0     # e.g. Upper vs Lower, Horse vs Group, Old vs New: non-match even at 25 m
+  one_sided: -1.5    # e.g. "Pines" vs "North Pines"
+
+shared_id:
+  same: 12.0         # same recreation.gov facility / NPS id / wikidata item: outweighs
+                     # name heuristics (an old name can carry a different discriminator)
+  different: -8.0    # both sides carry the same kind of id with different values
+
+phone:
+  max: 3.0           # scaled by inverse frequency: a ranger-district phone shared by many
+website:             # campgrounds is weak evidence
+  max: 3.0
+
+category:
+  same: 0.5
+  incompatible: -2.0  # horse or group vs anything else
+
+cluster:
+  max_diameter_m: 3000
+  strong_non_match: -5.0   # pairs scored at or below this are treated as cannot-link
