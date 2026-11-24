@@ -110,6 +110,7 @@ def run(conn: Connection, show_suggestion: bool = False, relabel: bool = False) 
     done = 0
     for i, pair in enumerate(todo, start=1):
         a, b = record_row(conn, pair.a), record_row(conn, pair.b)
+        conn.rollback()  # end the read transaction: never hold it open while a person thinks
         if a is None or b is None:
             console.print(f"[yellow]skipping {pair.key}: record not in database[/yellow]")
             continue

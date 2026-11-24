@@ -70,10 +70,12 @@ def run(conn: Connection, region: str) -> dict[str, int]:
     ovr = overrides.load()
     decided = 0
     pairs, conflicts = pending_pairs(conn, region), pending_conflicts(conn, region)
+    conn.rollback()
     console.print(f"{len(pairs)} pairs and {len(conflicts)} field conflicts to review.")
 
     for i, p in enumerate(pairs, start=1):
         a, b = record_row(conn, _ref(p.a_ref)), record_row(conn, _ref(p.b_ref))
+        conn.rollback()  # end the read transaction before waiting for input
         if a is None or b is None:
             continue
         render_pair(
