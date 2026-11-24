@@ -7,8 +7,8 @@ Website-extracted records later join matching as one more source (M7), and we me
 | | Milestone | Status |
 |---|---|---|
 | M0 | Bootstrap: repo, tooling, compose (PostGIS, Elasticsearch), CI, pre-commit + gitleaks, baseline migration | ✅ done |
-| M1 | Ingest OSM (Overpass), RIDB, NPS → raw store + `source_records`; counts per source | ⏳ next |
-| M2 | Canonical model: normalization + validation flags (names, contact, geometry, categories, seasons) | |
+| M1 | Ingest OSM (Overpass), RIDB, NPS → raw store + `source_records`; counts per source | ✅ done |
+| M2 | Canonical model: normalization + validation flags (names, contact, geometry, categories, seasons) | ⏳ next |
 | M3 | Entity resolution on structured sources: blocking, features, log-odds scoring, constrained clustering, hierarchy; label CLI, ER gold set + eval | |
 | M4 | Golden records: survivorship, stable IDs + redirects, overrides, quality score; quality / changes reports | |
 | M5 | Responsible crawler seeded from M1 records; crawl stats | |
@@ -29,3 +29,14 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] GitHub Actions: ruff, mypy, alembic, pytest with a PostGIS service
 - [x] Repo created and pushed (public); author identity verified
 - [x] Publication gate: full-history gitleaks + `scripts/check_publishable.py` on every push and in CI
+
+## M1 checklist
+- [x] Raw store interface: local filesystem (default) and S3 (tested with moto)
+- [x] `raw_objects` + `source_records` (migration 0002); fetch-once cache keyed by request
+- [x] Polite HTTP: honest User-Agent, timeouts, retries honouring `Retry-After`
+- [x] OSM adapter: nodes, ways and multipolygon relations, representative points
+- [x] RIDB adapter: union of state / radius / rec-area listings (pagination is unstable)
+- [x] NPS adapter: campgrounds for the region's park codes
+- [x] Idempotent upsert, change detection, `missed_runs` for records that disappear
+- [x] Recorded fixtures (real records, contact data scrubbed) + unit and integration tests
+- [x] Counts per source reported (README)

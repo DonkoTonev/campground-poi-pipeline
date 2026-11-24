@@ -1,7 +1,7 @@
 # Targets are added as their milestone lands; see docs/PLAN.md.
 UV := uv run
 
-.PHONY: setup up down migrate doctor test test-unit lint fmt typecheck
+.PHONY: setup up down migrate doctor ingest fixtures test test-unit lint fmt typecheck
 
 setup:  ## install deps + git hooks
 	uv sync
@@ -18,6 +18,12 @@ migrate:
 
 doctor:
 	$(UV) poi doctor
+
+ingest:  ## fetch structured sources (raw store first) into source_records
+	$(UV) poi ingest
+
+fixtures:  ## re-cut scrubbed test fixtures from the raw store
+	$(UV) python scripts/record_fixtures.py
 
 test:
 	$(UV) pytest
