@@ -26,6 +26,7 @@ from poi.match.scoring import (
     score_pair,
 )
 from poi.normalize.names import match_key
+from poi.resolve import overrides
 from poi.runs import track_run
 from poi.settings import Region
 
@@ -65,9 +66,12 @@ def load_records(conn: Connection, region: str) -> dict[int, MatchRecord]:
 
 
 def score_candidates(
-    conn: Connection, region: str, records: dict[int, MatchRecord], cfg: Config
+    conn: Connection,
+    region: str,
+    records: dict[int, MatchRecord],
+    cfg: Config,
+    freq: Frequencies,
 ) -> list[Scored]:
-    freq = Frequencies(records.values())
     return [
         score_pair(
             Candidate(
@@ -85,6 +89,35 @@ def score_candidates(
     ]
 
 
+def apply_overrides(
+    scored: list[Scored], records: dict[int, MatchRecord], freq: Frequencies, cfg: Config
+) -> tuple[list[Scored], frozenset[frozenset[int]]]:
+    """Manual pair decisions from data/overrides.yaml replace the model's decision. A pair
+    blocking never generated is scored on the spot, so the decision still has features."""
+    by_ref = {f"{r.source}:{r.source_id}": r for r in records.values()}
+    decided: dict[frozenset[int], str] = {}
+    for m in overrides.load().match:
+        if m.a in by_ref and m.b in by_ref:
+            decided[frozenset((by_ref[m.a].id, by_ref[m.b].id))] = m.decision
+    out = []
+    for s in scored:
+        key = frozenset((s.candidate.a.id, s.candidate.b.id))
+        if key in decided:
+            out.append(replace(s, decision=decided.pop(key), reason="override"))
+        else:
+            out.append(s)
+    for key, decision in decided.items():  # not a blocking candidate
+        a, b = sorted((records[i] for i in key), key=lambda r: r.id)
+        s = score_pair(Candidate(a, b, None, ("override",)), freq, cfg)
+        out.append(replace(s, decision=decision, reason="override"))
+    non_matches = frozenset(
+        frozenset((s.candidate.a.id, s.candidate.b.id))
+        for s in out
+        if s.reason == "override" and s.decision == "non_match"
+    )
+    return out, non_matches
+
+
 def _insert(conn: Connection, sql: str, rows: list[dict[str, Any]]) -> None:
     if rows:
         conn.execute(text(sql), rows)
@@ -94,9 +127,15 @@ def match_region(engine: Engine, region: Region) -> dict[str, Any]:
     cfg = load_config()
     with track_run(engine, "match", region.name) as run, engine.begin() as conn:
         records = load_records(conn, region.name)
-        scored = score_candidates(conn, region.name, records, cfg)
+        freq = Frequencies(records.values())
+        scored = score_candidates(conn, region.name, records, cfg, freq)
+        scored, manual_non_match = apply_overrides(scored, records, freq, cfg)
         result = cluster(
-            records, scored, cfg["cluster"]["max_diameter_m"], cfg["cluster"]["strong_non_match"]
+            records,
+            scored,
+            cfg["cluster"]["max_diameter_m"],
+            cfg["cluster"]["strong_non_match"],
+            manual_non_match,
         )
         relations = hierarchy(scored, result.clusters)
 

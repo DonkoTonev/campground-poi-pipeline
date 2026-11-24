@@ -65,7 +65,10 @@ def cluster(
     scored: list[Scored],
     max_diameter_m: float,
     strong_non_match: float,
+    manual_non_match: frozenset[frozenset[int]] = frozenset(),
 ) -> Clustering:
+    """Edges marked `reason == "override"` are manual decisions: they go first and only
+    manual non-match decisions can stop them. `manual_non_match` pairs never share a cluster."""
     strong_negative = {
         frozenset((s.candidate.a.id, s.candidate.b.id))
         for s in scored
@@ -76,7 +79,10 @@ def cluster(
     # Records joined across more than the diameter by a shared id: one of their points is
     # wrong, so they are left out of later diameter checks.
     untrusted_position: set[int] = set()
-    edges = sorted((s for s in scored if s.decision == "match"), key=lambda s: -s.score)
+    edges = sorted(
+        (s for s in scored if s.decision == "match"),
+        key=lambda s: (s.reason != "override", -s.score),
+    )
     for edge in edges:
         ra, rb = uf.find(edge.candidate.a.id), uf.find(edge.candidate.b.id)
         if ra == rb:
@@ -86,14 +92,17 @@ def cluster(
         # side is a coordinate error to resolve in survivorship, not a different campground.
         a, b = edge.candidate.a, edge.candidate.b
         by_id = shares_id(a, b)
-        reason = _violation(
-            records,
-            uf.members[ra],
-            uf.members[rb],
-            strong_negative,
-            None if by_id else max_diameter_m,
-            untrusted_position,
-        )
+        if edge.reason == "override":
+            reason = _manual_violation(uf.members[ra], uf.members[rb], manual_non_match)
+        else:
+            reason = _violation(
+                records,
+                uf.members[ra],
+                uf.members[rb],
+                strong_negative | manual_non_match,
+                None if by_id else max_diameter_m,
+                untrusted_position,
+            )
         if reason:
             blocked.append(Blocked(edge, reason))
             continue
@@ -102,6 +111,14 @@ def cluster(
         uf.union(ra, rb)
     clusters = {min(m): sorted(m) for m in uf.members.values()}
     return Clustering(clusters, blocked)
+
+
+def _manual_violation(
+    left: list[int], right: list[int], manual_non_match: frozenset[frozenset[int]]
+) -> str | None:
+    if any(frozenset((i, j)) in manual_non_match for i in left for j in right):
+        return "manual_non_match_in_cluster"
+    return None
 
 
 def _violation(
