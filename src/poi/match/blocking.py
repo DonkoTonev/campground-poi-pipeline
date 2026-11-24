@@ -14,7 +14,7 @@ BLOCKING_SQL = text(
     """
     WITH r AS (
         SELECT id, geom, shape, coalesce(shape, geom) AS g, coalesce(precision_m, 0) AS prec,
-               match_name, ids
+               match_name, ids, website
         FROM poi_records WHERE region = :region AND is_campground
     ),
     spatial AS (
@@ -35,9 +35,15 @@ BLOCKING_SQL = text(
               OR a.ids->>'nps_id' = b.ids->>'nps_id'
               OR a.ids->>'wikidata' = b.ids->>'wikidata')
     ),
+    by_website AS (  -- an extracted website record and the record that linked to the site
+        SELECT a.id, b.id, 'shared_website'
+        FROM r a JOIN r b ON a.id < b.id AND a.website = b.website
+        WHERE a.g IS NULL OR b.g IS NULL
+    ),
     pairs AS (
         SELECT a_id, b_id, array_agg(DISTINCT how ORDER BY how) AS blocked_by
-        FROM (SELECT * FROM spatial UNION ALL SELECT * FROM by_name UNION ALL SELECT * FROM by_id) u
+        FROM (SELECT * FROM spatial UNION ALL SELECT * FROM by_name UNION ALL SELECT * FROM by_id
+              UNION ALL SELECT * FROM by_website) u
         GROUP BY a_id, b_id
     )
     SELECT p.a_id, p.b_id, p.blocked_by,

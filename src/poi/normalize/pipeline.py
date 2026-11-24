@@ -7,7 +7,7 @@ from datetime import date
 from typing import Any
 
 from poi.normalize import category, contact, geo, names, season
-from poi.normalize.mappers import map_nps, map_osm, map_ridb
+from poi.normalize.mappers import map_extracted, map_nps, map_osm, map_ridb
 from poi.normalize.model import AMENITIES, CanonicalRecord, Draft, Flag, Severity, Tri
 from poi.settings import Region
 
@@ -32,6 +32,8 @@ def draft_for(row: SourceRow) -> Draft:
         return map_ridb(row.payload)
     if row.source == "nps":
         return map_nps(row.payload)
+    if row.source in ("web", "ridb_description"):
+        return map_extracted(row.payload, row.source)
     raise ValueError(f"no mapper for source {row.source!r}")
 
 
@@ -68,6 +70,19 @@ def _seasons(source: str, draft: Draft, today: date, flags: list[Flag]) -> list[
                 Flag("season", "unparsed_opening_hours", Severity.INFO, {"raw": draft.season_raw})
             )
         return parsed or []
+    if source in ("web", "ridb_description") and isinstance(draft.season_raw, list):
+        ranges = [
+            season.SeasonRange(
+                **{k: v for k, v in r.items() if k in season.SeasonRange.__dataclass_fields__}
+            )
+            for r in draft.season_raw
+        ]
+        stated = [r.year for r in ranges if r.year]
+        if stated and max(stated) < today.year:
+            flags.append(
+                Flag("season", "stale_season", Severity.WARNING, {"stated_year": max(stated)})
+            )
+        return ranges
     if source == "nps" and isinstance(draft.season_raw, list):
         ranges, season_flags = season.nps_season(draft.season_raw, today)
         flags.extend(season_flags)

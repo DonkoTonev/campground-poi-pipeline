@@ -284,3 +284,62 @@ def map_nps(payload: dict[str, Any]) -> Draft:
         season_raw=hours,
         season_note=next((h.get("description") for h in hours if h.get("description")), None),
     )
+
+
+# --- LLM extractions (official websites, RIDB descriptions) -----------------------------
+
+_EXTRACTED_CATEGORY = {c.value: c for c in Category}
+
+
+def map_extracted(payload: dict[str, Any], source: str) -> Draft:
+    """A campground extracted by the LLM (already grounded). For RIDB descriptions the
+    facility id comes from the document's record ref, so matching links it by shared id."""
+    prov = payload.get("_provenance", {})
+    ids: dict[str, str] = {}
+    if source == "ridb_description":
+        for ref in prov.get("record_refs", []):
+            if ref.startswith("ridb:"):
+                ids["recgov_facility_id"] = ref.split(":", 1)[1]
+    address = payload.get("address") or {}
+    length = payload.get("max_rv_length")
+    amenities = {k: Tri(v) for k, v in (payload.get("amenities") or {}).items() if v}
+    return Draft(
+        name=payload.get("name"),
+        alt_names=list(payload.get("alt_names") or []),
+        raw_lat=payload.get("latitude"),
+        raw_lon=payload.get("longitude"),
+        phone=payload.get("phone"),
+        email=payload.get("email"),
+        website=payload.get("website"),
+        reservation_url=payload.get("reservation_url"),
+        address={
+            k: v
+            for k, v in (
+                ("street", address.get("street")),
+                ("city", address.get("city")),
+                ("state", address.get("state")),
+                ("postcode", address.get("postal_code")),
+            )
+            if v
+        },
+        claimed_state=address.get("state"),
+        operator_name=payload.get("operator_name"),
+        operator_type_hint=OperatorType(payload["operator_type"])
+        if payload.get("operator_type")
+        else None,
+        category_hint=_EXTRACTED_CATEGORY.get(payload.get("category") or ""),
+        trusted_campground=source == "ridb_description",
+        ids=ids,
+        amenities=amenities,
+        num_sites=payload.get("num_sites"),
+        sites_by_type={s["type"]: s["count"] for s in payload.get("sites_by_type") or []},
+        max_rv_length=(float(length["value"]), length["unit"]) if length else None,
+        reservable=payload.get("reservable"),
+        first_come_first_served=payload.get("first_come_first_served"),
+        price_min=payload.get("price_min"),
+        price_max=payload.get("price_max"),
+        currency=payload.get("currency")
+        or ("USD" if payload.get("price_min") is not None else None),
+        season_raw=payload.get("season") or [],
+        season_note=payload.get("season_text"),
+    )

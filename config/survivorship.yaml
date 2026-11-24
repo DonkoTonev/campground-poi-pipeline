@@ -9,27 +9,31 @@
 corroboration_bonus: 0.15
 conflict_min_trust: 0.6   # a losing group this trusted makes a disagreement a real conflict
 
-default_trust: {nps: 0.9, ridb: 0.8, web: 0.7, osm: 0.6}
+default_trust: {nps: 0.9, ridb: 0.8, web: 0.7, ridb_description: 0.75, osm: 0.6}
 
 fields:
-  name:            {strategy: name_vote, trust: {nps: 1.0, osm: 0.8, web: 0.7, ridb: 0.6}}
+  name:            {strategy: name_vote, trust: {nps: 1.0, osm: 0.8, web: 0.7, ridb: 0.6,
+                                                 ridb_description: 0.5}}
   geometry:        {strategy: geometry, trust: {osm: 1.0, nps: 0.8, ridb: 0.5, web: 0.3},
                     conflict_m: 1000}
   category:        {trust: {nps: 0.9, osm: 0.8, ridb: 0.6, web: 0.7}}
   operator_type:   {trust: {ridb: 1.0, nps: 1.0, osm: 0.5, web: 0.6}}
   operator_name:   {trust: {ridb: 0.9, nps: 1.0, osm: 0.5, web: 0.6}}
-  phone:           {trust: {nps: 0.9, web: 0.9, ridb: 0.8, osm: 0.5}}
+  phone:           {trust: {nps: 0.9, web: 0.9, ridb: 0.8, ridb_description: 0.7, osm: 0.5}}
   website:         {trust: {web: 1.0, nps: 0.9, osm: 0.7}}
   reservation_url: {trust: {ridb: 1.0, nps: 0.9, web: 0.8, osm: 0.5}}
   email:           {trust: {nps: 0.9, web: 0.9, ridb: 0.7, osm: 0.5}}
   state_code:      {trust: {osm: 0.8, nps: 0.9, ridb: 0.5}}
-  reservable:      {trust: {ridb: 1.0, nps: 0.9, web: 0.8, osm: 0.4}, high_impact: true}
+  reservable:      {trust: {ridb: 1.0, nps: 0.9, web: 0.8, ridb_description: 0.8, osm: 0.4},
+                    high_impact: true}
   first_come_first_served: {trust: {nps: 1.0, web: 0.8, ridb: 0.6}, high_impact: true}
-  num_sites:       {trust: {nps: 1.0, web: 0.8, osm: 0.5}}
-  max_rv_length_ft: {trust: {nps: 1.0, web: 0.9, osm: 0.5}}
-  price:           {trust: {nps: 1.0, web: 0.9, ridb: 0.8}}
-  season:          {trust: {web: 1.0, nps: 0.9, osm: 0.5}, high_impact: true}
-  amenities:       {strategy: per_key, trust: {web: 1.0, nps: 0.9, osm: 0.6, ridb: 0.5}}
+  num_sites:       {trust: {nps: 1.0, web: 0.8, ridb_description: 0.8, osm: 0.5}}
+  max_rv_length_ft: {trust: {nps: 1.0, web: 0.9, ridb_description: 0.85, osm: 0.5}}
+  price:           {trust: {nps: 1.0, web: 0.9, ridb_description: 0.85, ridb: 0.8}}
+  season:          {trust: {web: 1.0, nps: 0.9, ridb_description: 0.85, osm: 0.5},
+                    high_impact: true}
+  amenities:       {strategy: per_key, trust: {web: 1.0, nps: 0.9, ridb_description: 0.85,
+                                                osm: 0.6, ridb: 0.5}}
 
 quality:
   weights: {completeness: 0.4, corroboration: 0.2, freshness: 0.2, validity: 0.2}
