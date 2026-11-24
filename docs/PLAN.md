@@ -8,8 +8,8 @@ Website-extracted records later join matching as one more source (M7), and we me
 |---|---|---|
 | M0 | Bootstrap: repo, tooling, compose (PostGIS, Elasticsearch), CI, pre-commit + gitleaks, baseline migration | ✅ done |
 | M1 | Ingest OSM (Overpass), RIDB, NPS → raw store + `source_records`; counts per source | ✅ done |
-| M2 | Canonical model: normalization + validation flags (names, contact, geometry, categories, seasons) | ⏳ next |
-| M3 | Entity resolution on structured sources: blocking, features, log-odds scoring, constrained clustering, hierarchy; label CLI, ER gold set + eval | |
+| M2 | Canonical model: normalization + validation flags (names, contact, geometry, categories, seasons) | ✅ done |
+| M3 | Entity resolution on structured sources: blocking, features, log-odds scoring, constrained clustering, hierarchy; label CLI, ER gold set + eval | ⏳ next |
 | M4 | Golden records: survivorship, stable IDs + redirects, overrides, quality score; quality / changes reports | |
 | M5 | Responsible crawler seeded from M1 records; crawl stats | |
 | M6 | Reduce + deterministic extraction; token metrics per representation | |
@@ -40,3 +40,13 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] Idempotent upsert, change detection, `missed_runs` for records that disappear
 - [x] Recorded fixtures (real records, contact data scrubbed) + unit and integration tests
 - [x] Counts per source reported (README)
+
+## M2 checklist
+- [x] `poi_records` (canonical, raw values kept) and `quality_flags` (migration 0003)
+- [x] Names: NFKC, title junk, smart title case, matching keys with abbreviation expansion
+- [x] Contact: E.164 phones (extensions, toll-free, multi-number fields), canonical URLs, emails, placeholders
+- [x] Geometry: null island, out of range, swapped, positive longitude, low precision, outside region, outside claimed state (Natural Earth admin-1)
+- [x] Categories, non-campground detection (organized camps, lodges, day use, aggregates), operator type
+- [x] Seasons: month-day ranges, holiday anchors, OSM `opening_hours`, NPS recurring closures, stale flag
+- [x] Amenities tri-state (never default to `no`), units (m → ft), sites, price, reservability
+- [x] Unit tests for each edge case; idempotent stage integration test

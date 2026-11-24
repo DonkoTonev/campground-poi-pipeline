@@ -19,6 +19,7 @@ make up migrate # Postgres/PostGIS + Elasticsearch, schema
 make lint test
 uv run poi doctor
 make ingest     # OSM always; RIDB / NPS when their keys are set (otherwise skipped with a log)
+make normalize  # canonical poi_records + quality_flags
 ```
 
 ## Results so far
@@ -38,7 +39,22 @@ listing alone found 68 of the 82 located campgrounds. Details and other real-dat
 
 Re-runs are served from the raw store: a second full ingest makes 0 network requests.
 
+After normalization (`poi normalize`), 379 of 394 records are campgrounds. The other 15 are
+organized camps, cabin-only lodges, a day-use area and aggregate pseudo-facilities, each with
+a flag for review. Field coverage of the campgrounds shows where the gaps are:
+
+| Source | Campgrounds | Phone | Website | Season dates | Site count | Drinking water known |
+|---|---|---|---|---|---|---|
+| OSM | 278 | 7 | 105 | 0 | 54 | 22 |
+| RIDB | 85 | 60 | 0 | 0 | 0 | 0 |
+| NPS | 16 | 16 | 15 | 16 | 16 | 16 |
+
+Season dates are known for 16 of 379 campgrounds, all from NPS. Closing that gap from official
+websites is the job of the LLM extraction stage, and its effect will be measured against this
+baseline.
+
 ## Data sources and attribution
 - Map data © OpenStreetMap contributors, available under the Open Database License (ODbL).
 - Recreation Information Database (RIDB), Recreation.gov.
 - U.S. National Park Service API.
+- State and province boundaries: Natural Earth (public domain), simplified subset in `data/reference/`.
