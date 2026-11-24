@@ -8,14 +8,21 @@ from typing import Annotated
 import typer
 
 from poi.db import check_extensions, get_engine
+from poi.eval import er as er_eval
 from poi.ingest import ingest_source
 from poi.log import configure_logging, get_logger
+from poi.match.stage import match_region
 from poi.normalize.stage import normalize_region
-from poi.settings import get_settings, load_region
+from poi.review import gold, label
+from poi.settings import PROJECT_ROOT, get_settings, load_region
 from poi.sources import ALL_SOURCES
 from poi.storage import make_store
 
 app = typer.Typer(no_args_is_help=True, help="Campground POI pipeline.")
+review_app = typer.Typer(no_args_is_help=True, help="Human-in-the-loop review and labelling.")
+eval_app = typer.Typer(no_args_is_help=True, help="Evaluation against verified gold sets.")
+app.add_typer(review_app, name="review")
+app.add_typer(eval_app, name="eval")
 log = get_logger(__name__)
 
 
@@ -76,3 +83,51 @@ def normalize(
     settings = get_settings()
     stats = normalize_region(get_engine(), load_region(region, settings))
     typer.echo(json.dumps(stats, indent=2))
+
+
+@app.command()
+def match(
+    region: Annotated[
+        str | None, typer.Option(help="Region name from config/regions.yaml.")
+    ] = None,
+) -> None:
+    """Entity resolution: block, score, cluster and relate campground records."""
+    settings = get_settings()
+    stats = match_region(get_engine(), load_region(region, settings))
+    typer.echo(json.dumps(stats, indent=2))
+
+
+@review_app.command("suggest-gold")
+def suggest_gold(
+    region: Annotated[str | None, typer.Option(help="Region name.")] = None,
+    target: Annotated[int, typer.Option(help="About how many pairs to sample.")] = 200,
+) -> None:
+    """Sample ER gold pairs with suggested (unverified) labels; keeps existing labels."""
+    reg = load_region(region, get_settings())
+    with get_engine().connect() as conn:
+        new = gold.suggest(conn, reg.name, target)
+    pairs = gold.merge(gold.load(), new)
+    gold.save(pairs)
+    typer.echo(f"{len(pairs)} pairs in {gold.GOLD_PATH.relative_to(PROJECT_ROOT)} "
+               f"({sum(p.verified for p in pairs)} verified)")  # fmt: skip
+
+
+@review_app.command("label")
+def review_label(
+    show_suggestion: Annotated[
+        bool, typer.Option(help="Show the model's suggestion (off: avoids anchoring).")
+    ] = False,
+    relabel: Annotated[bool, typer.Option(help="Also revisit verified pairs.")] = False,
+) -> None:
+    """Verify gold pairs side by side: [m]atch, [n]on-match, [u]nsure, [s]kip, [q]uit."""
+    with get_engine().connect() as conn:
+        label.run(conn, show_suggestion, relabel)
+
+
+@eval_app.command("er")
+def eval_er(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
+    """Precision/recall/F1 of ER on verified labels; writes reports/er_eval.md."""
+    reg = load_region(region, get_settings())
+    with get_engine().connect() as conn:
+        result = er_eval.evaluate(conn, reg.name)
+    typer.echo(er_eval.summary_json(result))
