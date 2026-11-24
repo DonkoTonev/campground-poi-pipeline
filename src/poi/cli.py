@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Annotated, cast
 
 import typer
@@ -331,6 +332,24 @@ def serve(
     import uvicorn
 
     uvicorn.run("poi.serve.api:app", host=host, port=port)
+
+
+@app.command()
+def mcp(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
+    """MCP server over stdio: search_campgrounds, get_campground, along_route (read-only)."""
+    from elasticsearch import Elasticsearch
+
+    from poi.serve.index import alias_name
+    from poi.serve.mcp_server import build_server
+
+    settings = get_settings()
+    configure_logging(settings.log_level, settings.log_json, stderr=True)  # stdout is the protocol
+    logging.getLogger("elastic_transport").setLevel(logging.WARNING)  # one line per request
+    name = load_region(region, settings).name
+    server = build_server(
+        get_engine(), Elasticsearch(settings.elasticsearch_url), name, alias_name(name)
+    )
+    server.run("stdio")
 
 
 @app.command()

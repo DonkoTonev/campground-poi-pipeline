@@ -73,6 +73,47 @@ make normalize match resolve index report
 make serve
 ```
 
+## Use it from Claude (MCP)
+
+`poi mcp` is an [MCP](https://modelcontextprotocol.io) server over stdio with three read-only
+tools: `search_campgrounds` (fuzzy name, near a point, amenities, month open, category),
+`get_campground` (golden record with per-field provenance; merged ids resolve to the
+survivor) and `along_route` (campgrounds near a `[lon, lat]` route, in driving order). It
+reads the same Postgres and Elasticsearch as the API, so run `make demo` (or the full
+pipeline) first.
+
+Claude Code, from the repository root, against the demo database:
+
+```bash
+claude mcp add campgrounds \
+  -e DATABASE_URL=postgresql+psycopg://poi:poi@localhost:5433/poi_demo \
+  -e INDEX_PREFIX=demo-campgrounds \
+  -- uv run --directory "$PWD" poi mcp
+```
+
+Claude Desktop (`claude_desktop_config.json`), with an absolute path to the clone:
+
+```json
+{
+  "mcpServers": {
+    "campgrounds": {
+      "command": "uv",
+      "args": ["run", "--directory", "/path/to/campground-poi-pipeline", "poi", "mcp"],
+      "env": {
+        "DATABASE_URL": "postgresql+psycopg://poi:poi@localhost:5433/poi_demo",
+        "INDEX_PREFIX": "demo-campgrounds"
+      }
+    }
+  }
+}
+```
+
+Leave out the two variables to use the development database instead of the demo one. Then
+ask, for example: "Which campgrounds near Tuolumne Meadows are open in July and have drinking
+water?" or "I'm driving from Big Oak Flat to Tioga Pass, what can I camp at along the way?"
+
+## Review and overrides
+
 Human-in-the-loop: `uv run poi review label` verifies entity-resolution gold pairs;
 `uv run poi review queue` decides gray-zone pairs and field conflicts and writes the decisions
 to `data/overrides.yaml`, which every run applies.

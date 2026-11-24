@@ -255,6 +255,13 @@ over-promises. Along-route queries stay in PostGIS (`ST_DWithin` against the rou
 ordered by `ST_LineLocatePoint`), which is the road-trip question: what can I reach from the
 road, in driving order. A merged id answers 301 with the surviving id, a retired one 410.
 
+The same queries are exposed to assistants through an MCP server (`poi mcp`, stdio). HTTP API
+and MCP tools call one query layer (`poi.serve.service`), so both front ends return the same
+models and cannot drift. The tools are read-only and say so in their annotations; their
+parameter descriptions carry the things a model gets wrong, such as `[lon, lat]` order and the
+allowed amenity and category values. `get_campground` follows merge redirects itself (a tool
+call has no 301), and retired or unknown ids come back as tool errors with the reason.
+
 ## What I would do at 1M POIs
 
 - **LLM-induced selectors for templated sites.** Chains, state park systems and booking

@@ -3,80 +3,22 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Iterator
-from datetime import date
 
-import httpx
 import pytest
-import respx
 from elasticsearch import Elasticsearch
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
 
-from conftest import load_fixture
-from poi.ingest import ingest_source
-from poi.match.stage import match_region
-from poi.normalize.stage import normalize_region
-from poi.resolve.stage import resolve_region
+from conftest import entity_id as _id
 from poi.serve.api import create_app
-from poi.serve.index import build
-from poi.settings import Settings, get_settings, load_region
-from poi.sources import ridb
-from poi.storage.local import LocalStore
 
 pytestmark = pytest.mark.integration
-SIERRA = load_region("sierra")
 UPPER_PINES = (37.7356, -119.5635)
 
 
 @pytest.fixture
-def es() -> Iterator[Elasticsearch]:
-    client = Elasticsearch(get_settings().elasticsearch_url)
-    try:
-        if not client.ping():
-            pytest.skip("Elasticsearch not reachable (run `make up`)")
-    except Exception:
-        pytest.skip("Elasticsearch not reachable (run `make up`)")
-    yield client
-    client.close()
-
-
-@pytest.fixture
-def api(
-    db: Engine, es: Elasticsearch, settings: Settings, monkeypatch: pytest.MonkeyPatch
-) -> Iterator[TestClient]:
-    monkeypatch.setattr(ridb, "POLITE_DELAY_S", 0)
-    store = LocalStore(settings.raw_store_path)
-    with respx.mock:
-        respx.post(settings.overpass_url).mock(
-            return_value=httpx.Response(200, json=load_fixture("osm/overpass.json"))
-        )
-        respx.get(url__startswith=settings.ridb_base_url).mock(
-            return_value=httpx.Response(200, json=load_fixture("ridb/facilities.json"))
-        )
-        respx.get(url__startswith=settings.nps_base_url).mock(
-            return_value=httpx.Response(200, json=load_fixture("nps/campgrounds.json"))
-        )
-        for source in ("osm", "ridb", "nps"):
-            ingest_source(db, store, settings, SIERRA, source)
-    normalize_region(db, SIERRA, date(2026, 11, 24))
-    match_region(db, SIERRA)
-    resolve_region(db, SIERRA)
-    alias = f"test-campgrounds-{uuid.uuid4().hex[:8]}"
-    build(db, es, SIERRA, alias=alias)
-    yield TestClient(create_app(engine=db, es=es, region="sierra", alias=alias))
-    for index in es.indices.get(index=f"{alias}-v*"):  # deletes need explicit names
-        es.indices.delete(index=index)
-
-
-def _id(db: Engine, name: str) -> str:
-    with db.connect() as conn:
-        return str(
-            conn.execute(
-                text("SELECT id::text FROM entities WHERE name = :n AND status = 'active'"),
-                {"n": name},
-            ).scalar_one()
-        )
+def api(db: Engine, es: Elasticsearch, served: str) -> TestClient:
+    return TestClient(create_app(engine=db, es=es, region="sierra", alias=served))
 
 
 def test_health(api: TestClient) -> None:

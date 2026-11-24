@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import logging
+import sys
 
 import structlog
 
 
-def configure_logging(level: str = "INFO", json: bool = False) -> None:
-    logging.basicConfig(format="%(message)s", level=level.upper())
+def configure_logging(level: str = "INFO", json: bool = False, stderr: bool = False) -> None:
+    """`stderr=True` keeps stdout free for a protocol (the MCP stdio transport)."""
+    logging.basicConfig(format="%(message)s", level=level.upper(), stream=sys.stderr)
     renderer: structlog.typing.Processor = (
         structlog.processors.JSONRenderer() if json else structlog.dev.ConsoleRenderer()
     )
@@ -22,6 +24,7 @@ def configure_logging(level: str = "INFO", json: bool = False) -> None:
         wrapper_class=structlog.make_filtering_bound_logger(
             logging.getLevelNamesMapping()[level.upper()]
         ),
+        logger_factory=structlog.PrintLoggerFactory(sys.stderr if stderr else sys.stdout),
         cache_logger_on_first_use=True,
     )
 

@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from poi.serve.api import RouteRequest
 from poi.serve.queries import bbox_query, distance_sort, search_query
+from poi.serve.service import RouteRequest
 
 
 def test_search_query_combines_relevance_quality_and_distance() -> None:

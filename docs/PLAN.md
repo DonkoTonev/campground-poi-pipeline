@@ -20,6 +20,9 @@ Website-extracted records later join matching as one more source (M7), and we me
 Stretch (only if time is left after M9): S1 embeddings, S2 LLM adjudication of gray-zone pairs,
 S3 MCP server, S4 PDF brochures, S5 induced selectors.
 
+## Stretch checklist
+- [x] S3: MCP server (`poi mcp`, stdio) with `search_campgrounds`, `get_campground`, `along_route` over the API's query layer; integration tests through an in-process MCP client
+
 ## M0 checklist
 - [x] `.gitignore` before first commit
 - [x] uv project (Python 3.12), Typer CLI `poi`, pydantic-settings, structlog
