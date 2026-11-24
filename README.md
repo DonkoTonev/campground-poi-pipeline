@@ -25,6 +25,7 @@ make resolve    # golden records with stable ids and provenance
 make report     # reports/quality.md, reports/changes.md
 uv run poi crawl --plan   # screen website seeds, fetch nothing
 make crawl      # crawl official campground websites (robots.txt, 1 request/host, honest UA)
+make reduce     # pages + RIDB descriptions -> capped LLM input documents, token metrics
 uv run poi review queue   # decide gray-zone pairs and conflicts -> data/overrides.yaml
 uv run poi review label   # verify ER gold pairs
 make eval       # precision / recall on verified labels
@@ -81,6 +82,13 @@ fs.usda.gov were not crawled: the host answers an identified crawler with a bloc
 crawler stopped there after one request instead of working around it. No page needed a
 headless browser. Fetched pages average 144 KB of HTML but only about 5,600 characters of
 visible text, which is the first hint of how much cheaper extraction gets after reduction.
+
+Reduction (`poi reduce`, no LLM involved): crawled pages average about 36,400 tokens of raw
+HTML, 2,100 as cleaned HTML and 950 as Markdown, i.e. 2.6% of the raw size, while keeping 97%
+of distinct prices and phone numbers and 96% of month mentions (token counts estimated as
+bytes / 4 until calibrated against the API). That gives 15 website bundles (about 4,300 tokens
+each) and 85 RIDB description documents (about 760 tokens each) as LLM inputs; details in
+[reports/tokens.md](reports/tokens.md).
 
 ## Data sources and attribution
 - Map data © OpenStreetMap contributors, available under the Open Database License (ODbL).

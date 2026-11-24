@@ -157,6 +157,40 @@ body is stored gzipped in the raw store. Flags: soft 404, parked domain, off-dom
 needs-render (thin static text and no embedded JSON). Re-crawls send `If-None-Match` /
 `If-Modified-Since`; a 304 or an identical content hash means no re-extraction.
 
+## Reduction: making the LLM input small without losing facts
+
+Each crawled page is kept in four representations, each with a token count: raw HTML,
+cleaned HTML (scripts, styles, navigation, footers, forms, media, cookie banners, comments,
+base64 blobs and attributes removed; phone, email and reservation links kept), Markdown, and
+plain text. Markdown comes from trafilatura's main-content extraction with tables and lists
+kept, falling back to converting the whole cleaned page when the main-content pass keeps too
+little.
+
+Main-content extraction drops headers and sidebars by design, and that is where phone numbers
+live: on the first run only 58% of distinct phone numbers survived. A **fact salvage** pass
+appends, once, every line outside the main content that carries a fact signal (price, phone,
+email, month and day, hours, check-in, site count). For about 7% more tokens it brings
+retention to 97% for prices and phones and 96% for month mentions. This proxy runs on every
+page for free; per-field accuracy against a gold set is measured in the extraction stage.
+
+Pages of one site are bundled into one request (amortizing the instructions), each as a
+`## [P1] <url>` section so evidence can cite its page. Lines repeated on at least half of a
+site's pages (menus, footers) are removed; those carrying a fact are kept once in a
+`[SITE]` section. Bundles are capped at 12,000 tokens; only when a bundle is over the cap
+are page sections cut by relevance (headings, fact lines and campground keywords first).
+
+Deterministic facts come first and cost nothing: schema.org JSON-LD and microdata of
+business types (Campground, LodgingBusiness, LocalBusiness, Resort...; events are ignored),
+`tel:` links normalized to E.164, `mailto:` links (role mailboxes only: personal addresses
+are dropped), and `<address>` blocks.
+
+RIDB facility descriptions are documents of their own (`ridb_description`, cited as `[R1]`),
+kept apart from crawled pages (`web_bundle`), so each input's contribution and cost can be
+reported separately.
+
+Token counts here are estimates (UTF-8 bytes / 4); the extraction stage calibrates them with
+the API's free `count_tokens` endpoint. Numbers: [reports/tokens.md](../reports/tokens.md).
+
 ## Edge cases found in real data
 
 Logged as they are discovered; each handled case has a test.

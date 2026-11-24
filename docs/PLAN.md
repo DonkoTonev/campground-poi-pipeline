@@ -12,8 +12,8 @@ Website-extracted records later join matching as one more source (M7), and we me
 | M3 | Entity resolution on structured sources: blocking, features, log-odds scoring, constrained clustering, hierarchy; label CLI, ER gold set + eval | ⏳ awaiting verified labels |
 | M4 | Golden records: survivorship, stable IDs + redirects, overrides, quality score; quality / changes reports | ✅ done |
 | M5 | Responsible crawler seeded from M1 records; crawl stats | ✅ done |
-| M6 | Reduce + deterministic extraction; token metrics per representation | ⏳ next |
-| M7 | LLM extraction: cost ladder, guardrails, ledger, dry-run → approval → run; extraction gold set + eval; ablation; extracted records join ER; coverage delta vs cost | |
+| M6 | Reduce + deterministic extraction; token metrics per representation | ✅ done |
+| M7 | LLM extraction: cost ladder, guardrails, ledger, dry-run → approval → run; extraction gold set + eval; ablation; extracted records join ER; coverage delta vs cost | ⏳ next |
 | M8 | Serving (small): ES index with alias swap; search, bbox, along-route, get-by-id (+ redirects), health | |
 | M9 | Polish: demo snapshot, `make demo`, README / DESIGN / aws docs with measured numbers | |
 
@@ -81,3 +81,12 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] Raw bodies gzipped in the raw store; `sites` and `pages` rows; conditional re-crawls (ETag / Last-Modified, content hash)
 - [x] Playwright rendering behind `--render` (only for pages flagged needs-render)
 - [x] Unit tests and an end-to-end crawl test against a local fixture server
+
+## M6 checklist
+- [x] Four representations per page (raw HTML, cleaned HTML, Markdown, text) with token counts (`page_texts`)
+- [x] Cleaning: scripts, styles, nav, footer, forms, media, banners, comments, base64, attributes
+- [x] Main-content Markdown with tables/lists, fallback conversion, fact salvage (measured retention per run)
+- [x] Site bundles with `[P1]` page citations, cross-page boilerplate removal, site-wide fact block, 12k-token cap with relevance cutting
+- [x] Deterministic facts: JSON-LD / microdata business types, `tel:`, role `mailto:`, `<address>`
+- [x] RIDB description documents (`ridb_description`, distinct provenance)
+- [x] `poi report tokens` (reports/tokens.md); unit tests and an idempotent stage integration test
