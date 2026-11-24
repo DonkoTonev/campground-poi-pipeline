@@ -13,9 +13,9 @@ Website-extracted records later join matching as one more source (M7), and we me
 | M4 | Golden records: survivorship, stable IDs + redirects, overrides, quality score; quality / changes reports | ✅ done |
 | M5 | Responsible crawler seeded from M1 records; crawl stats | ✅ done |
 | M6 | Reduce + deterministic extraction; token metrics per representation | ✅ done |
-| M7 | LLM extraction: cost ladder, guardrails, ledger, dry-run → approval → run; extraction gold set + eval; ablation; extracted records join ER; coverage delta vs cost | ⏳ next |
-| M8 | Serving (small): ES index with alias swap; search, bbox, along-route, get-by-id (+ redirects), health | |
-| M9 | Polish: demo snapshot, `make demo`, README / DESIGN / aws docs with measured numbers | |
+| M7 | LLM extraction: cost ladder, guardrails, ledger, dry-run → approval → run; extraction gold set + eval; ablation; extracted records join ER; coverage delta vs cost | 🟡 built and fixture-tested; live run waits for an API key |
+| M8 | Serving (small): ES index with alias swap; search, bbox, along-route, get-by-id (+ redirects), health | ✅ done |
+| M9 | Polish: demo snapshot, `make demo`, README / DESIGN / aws docs with measured numbers | ⏳ next |
 
 Stretch (only if time is left after M9): S1 embeddings, S2 LLM adjudication of gray-zone pairs,
 S3 MCP server, S4 PDF brochures, S5 induced selectors.
@@ -90,3 +90,22 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] Deterministic facts: JSON-LD / microdata business types, `tel:`, role `mailto:`, `<address>`
 - [x] RIDB description documents (`ridb_description`, distinct provenance)
 - [x] `poi report tokens` (reports/tokens.md); unit tests and an idempotent stage integration test
+
+## M7 checklist
+- [x] Extraction contract (pydantic, lean, tri-state amenities, evidence), versioned prompt with injection defense
+- [x] Provider-agnostic LLM layer: Claude adapter (structured outputs, prompt caching, Message Batches, Haiku → Sonnet), optional Gemini adapter
+- [x] Ladder: skip unchanged → deterministic facts → cheap model → one escalation → review
+- [x] Grounding (values and quotes must be in the input), computed confidence, hallucination rate
+- [x] `llm_calls` ledger, `--dry-run` (count_tokens), `--max-cost-usd` hard stop, `--batch`, record/replay
+- [x] Extracted campgrounds join normalize → match → resolve as `web` / `ridb_description`
+- [x] Synthetic extraction gold set (18 edge cases), `poi eval extraction`, `poi eval ablation`, `poi report cost`
+- [x] Fixture tests through the real Anthropic SDK (mock transport), end-to-end batch test
+- [ ] Dry run with the API key → approval → live run
+- [ ] Live evaluation and ablation; coverage delta per input with its cost in the README
+
+## M8 checklist
+- [x] Versioned Elasticsearch index with atomic alias swap (one previous version kept for rollback)
+- [x] Mapping: name (text, autocomplete, keyword), alt names, geo_point, category, amenities, months open, operator type, quality score
+- [x] `GET /campgrounds/search`: fuzzy text, filters, distance sort, function_score (relevance × quality × distance decay)
+- [x] `GET /campgrounds/bbox`, `POST /campgrounds/along-route` (PostGIS, driving order), `GET /campgrounds/{id}` (provenance, 301 / 410 / 404), `GET /health`
+- [x] OpenAPI docs at /docs; unit tests for query builders; API integration tests against PostGIS and Elasticsearch (also in CI)

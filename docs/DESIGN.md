@@ -191,6 +191,20 @@ reported separately.
 Token counts here are estimates (UTF-8 bytes / 4); the extraction stage calibrates them with
 the API's free `count_tokens` endpoint. Numbers: [reports/tokens.md](../reports/tokens.md).
 
+## Serving
+
+Postgres + PostGIS is the system of record; Elasticsearch is a derived read model. `poi index`
+builds a new versioned index from the active entities and swaps the alias in one atomic call,
+keeping the previous version for rollback; searches never see a half-built index.
+
+Search ranks by text relevance (fuzzy name and alternative names, prefix autocomplete) ×
+quality score × a Gaussian distance decay (half score at 25 km) when a location is given, with
+filters for amenities, month open, category and radius. A "seasonal" amenity counts as
+available (the campground is open in season anyway); "partial" does not, so a filter never
+over-promises. Along-route queries stay in PostGIS (`ST_DWithin` against the route line,
+ordered by `ST_LineLocatePoint`), which is the road-trip question: what can I reach from the
+road, in driving order. A merged id answers 301 with the surviving id, a retired one 410.
+
 ## Edge cases found in real data
 
 Logged as they are discovered; each handled case has a test.

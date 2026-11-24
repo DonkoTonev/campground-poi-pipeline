@@ -27,6 +27,7 @@ uv run poi crawl --plan   # screen website seeds, fetch nothing
 make crawl      # crawl official campground websites (robots.txt, 1 request/host, honest UA)
 make reduce     # pages + RIDB descriptions -> capped LLM input documents, token metrics
 uv run poi review queue   # decide gray-zone pairs and conflicts -> data/overrides.yaml
+make index serve  # search index + API
 uv run poi review label   # verify ER gold pairs
 make eval       # precision / recall on verified labels
 ```
@@ -89,6 +90,20 @@ of distinct prices and phone numbers and 96% of month mentions (token counts est
 bytes / 4 until calibrated against the API). That gives 15 website bundles (about 4,300 tokens
 each) and 85 RIDB description documents (about 760 tokens each) as LLM inputs; details in
 [reports/tokens.md](reports/tokens.md).
+
+## Serving
+
+```bash
+make index      # versioned Elasticsearch index, atomic alias swap
+make serve      # API on http://127.0.0.1:8000, OpenAPI docs at /docs
+
+curl 'localhost:8000/campgrounds/search?q=tuolume%20medows'                 # typo-tolerant
+curl 'localhost:8000/campgrounds/search?lat=37.74&lon=-119.57&radius_km=30&open_in_month=1'
+curl 'localhost:8000/campgrounds/bbox?min_lat=37.70&min_lon=-119.62&max_lat=37.76&max_lon=-119.53'
+curl -X POST localhost:8000/campgrounds/along-route -H 'content-type: application/json' \
+  -d '{"route": [[-119.86, 37.70], [-119.59, 37.74], [-119.35, 37.87]], "buffer_km": 3}'
+curl 'localhost:8000/campgrounds/<id>'   # golden record + provenance; 301 if merged
+```
 
 ## Data sources and attribution
 - Map data © OpenStreetMap contributors, available under the Open Database License (ODbL).
