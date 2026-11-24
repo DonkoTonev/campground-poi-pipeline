@@ -91,11 +91,44 @@ def fetch(
     )
     ctx.stats["requests"] += 1
     body = resp.content
+    raw_id = store_raw(
+        ctx.engine,
+        ctx.store,
+        source=source,
+        request_key_=key,
+        request={"method": method.upper(), "url": url, "params": params},
+        body=body,
+        status=resp.status_code,
+        headers={k.lower(): v for k, v in resp.headers.items()},
+        run_id=ctx.run_id,
+        suffix="json",
+    )
+    log.info("fetch.stored", source=source, url=url, bytes=len(body), raw_object_id=raw_id)
+    return RawResponse(raw_id, body, False)
+
+
+def store_raw(
+    engine: Engine,
+    store: RawStore,
+    *,
+    source: str,
+    request_key_: str,
+    request: dict[str, Any],
+    body: bytes,
+    status: int,
+    headers: Mapping[str, str],
+    run_id: int,
+    suffix: str,
+) -> int:
+    """Gzip a response body into the raw store and register it; returns the raw object id.
+    Keyed by request hash + fetch time, so re-fetches never overwrite earlier versions."""
     fetched_at = datetime.now(UTC)
-    storage_key = f"{source}/{fetched_at:%Y/%m/%d}/{key[:16]}-{fetched_at:%H%M%S%f}.json.gz"
-    ctx.store.put(storage_key, gzip.compress(body))
-    with ctx.engine.begin() as conn:
-        raw_id = conn.execute(
+    storage_key = (
+        f"{source}/{fetched_at:%Y/%m/%d}/{request_key_[:16]}-{fetched_at:%H%M%S%f}.{suffix}.gz"
+    )
+    store.put(storage_key, gzip.compress(body))
+    with engine.begin() as conn:
+        raw_id: int = conn.execute(
             text(
                 """
                 INSERT INTO raw_objects (source, request_key, request, storage_key, sha256, bytes,
@@ -107,18 +140,17 @@ def fetch(
             ),
             {
                 "source": source,
-                "key": key,
-                "request": json.dumps({"method": method.upper(), "url": url, "params": params}),
+                "key": request_key_,
+                "request": json.dumps(request),
                 "storage_key": storage_key,
                 "sha": hashlib.sha256(body).hexdigest(),
                 "bytes": len(body),
-                "ctype": resp.headers.get("content-type"),
-                "status": resp.status_code,
-                "etag": resp.headers.get("etag"),
-                "lm": resp.headers.get("last-modified"),
+                "ctype": headers.get("content-type"),
+                "status": status,
+                "etag": headers.get("etag"),
+                "lm": headers.get("last-modified"),
                 "fetched_at": fetched_at,
-                "run_id": ctx.run_id,
+                "run_id": run_id,
             },
         ).scalar_one()
-    log.info("fetch.stored", source=source, url=url, bytes=len(body), raw_object_id=raw_id)
-    return RawResponse(raw_id, body, False)
+    return raw_id
