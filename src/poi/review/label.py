@@ -22,7 +22,7 @@ FIELDS = (
 CHOICES = {"m": "match", "n": "non_match", "u": "unsure"}
 
 
-def _record(conn: Connection, ref: dict[str, str]) -> dict[str, Any] | None:
+def record_row(conn: Connection, ref: dict[str, str]) -> dict[str, Any] | None:
     row = (
         conn.execute(
             text(
@@ -68,12 +68,14 @@ def _fmt(value: Any) -> str:
     return str(value)
 
 
-def render(console: Console, pair: GoldPair, a: dict[str, Any], b: dict[str, Any],
-           index: int, total: int, show_suggestion: bool) -> None:  # fmt: skip
-    table = Table(title=f"Pair {index}/{total}  ·  strata: {', '.join(pair.strata)}")
+def render_pair(
+    console: Console, title: str, a_ref: str, b_ref: str, a: dict[str, Any], b: dict[str, Any]
+) -> None:
+    """Two records side by side, with their distance and a map link showing both."""
+    table = Table(title=title)
     table.add_column("field", style="bold")
-    table.add_column(f"A · {pair.a['source']}:{pair.a['source_id']}")
-    table.add_column(f"B · {pair.b['source']}:{pair.b['source_id']}")
+    table.add_column(f"A · {a_ref}")
+    table.add_column(f"B · {b_ref}")
     for f in FIELDS:
         table.add_row(f, _fmt(a.get(f)), _fmt(b.get(f)))
     console.print(table)
@@ -81,6 +83,18 @@ def render(console: Console, pair: GoldPair, a: dict[str, Any], b: dict[str, Any
     console.print(f"distance: {'unknown' if d is None else f'{d:,.0f} m'}")
     if link := map_link(a, b):
         console.print(f"map: {link}")
+
+
+def render(console: Console, pair: GoldPair, a: dict[str, Any], b: dict[str, Any],
+           index: int, total: int, show_suggestion: bool) -> None:  # fmt: skip
+    render_pair(
+        console,
+        f"Pair {index}/{total}  ·  strata: {', '.join(pair.strata)}",
+        f"{pair.a['source']}:{pair.a['source_id']}",
+        f"{pair.b['source']}:{pair.b['source_id']}",
+        a,
+        b,
+    )
     if show_suggestion:
         console.print(
             f"[dim]model suggestion: {pair.suggested} (score {pair.suggestion_score})[/dim]"
@@ -95,7 +109,7 @@ def run(conn: Connection, show_suggestion: bool = False, relabel: bool = False) 
                   r"\[m]atch  \[n]on-match  \[u]nsure  \[s]kip  \[q]uit")  # fmt: skip
     done = 0
     for i, pair in enumerate(todo, start=1):
-        a, b = _record(conn, pair.a), _record(conn, pair.b)
+        a, b = record_row(conn, pair.a), record_row(conn, pair.b)
         if a is None or b is None:
             console.print(f"[yellow]skipping {pair.key}: record not in database[/yellow]")
             continue

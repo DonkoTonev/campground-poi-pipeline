@@ -1,7 +1,7 @@
 # Targets are added as their milestone lands; see docs/PLAN.md.
 UV := uv run
 
-.PHONY: setup up down migrate doctor ingest normalize match eval fixtures test test-unit lint fmt typecheck
+.PHONY: setup up down migrate doctor ingest normalize match resolve report eval fixtures test test-unit lint fmt typecheck
 
 setup:  ## install deps + git hooks
 	uv sync
@@ -27,6 +27,13 @@ normalize:  ## source_records -> canonical poi_records + quality_flags
 
 match:  ## entity resolution: candidate pairs, decisions, clusters, relations
 	$(UV) poi match
+
+resolve:  ## golden records with stable ids, provenance and quality score
+	$(UV) poi resolve
+
+report:  ## Markdown reports in reports/
+	$(UV) poi report quality
+	$(UV) poi report changes
 
 eval:  ## metrics on verified gold labels (reports/)
 	$(UV) poi eval er

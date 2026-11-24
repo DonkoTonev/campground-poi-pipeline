@@ -13,7 +13,9 @@ from poi.ingest import ingest_source
 from poi.log import configure_logging, get_logger
 from poi.match.stage import match_region
 from poi.normalize.stage import normalize_region
-from poi.review import gold, label
+from poi.report import quality as reports
+from poi.resolve.stage import resolve_region
+from poi.review import gold, label, queue
 from poi.settings import PROJECT_ROOT, get_settings, load_region
 from poi.sources import ALL_SOURCES
 from poi.storage import make_store
@@ -23,6 +25,8 @@ review_app = typer.Typer(no_args_is_help=True, help="Human-in-the-loop review an
 eval_app = typer.Typer(no_args_is_help=True, help="Evaluation against verified gold sets.")
 app.add_typer(review_app, name="review")
 app.add_typer(eval_app, name="eval")
+report_app = typer.Typer(no_args_is_help=True, help="Markdown reports in reports/.")
+app.add_typer(report_app, name="report")
 log = get_logger(__name__)
 
 
@@ -124,6 +128,14 @@ def review_label(
         label.run(conn, show_suggestion, relabel)
 
 
+@review_app.command("queue")
+def review_queue(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
+    """Decide gray-zone pairs and field conflicts; decisions go to data/overrides.yaml."""
+    reg = load_region(region, get_settings())
+    with get_engine().connect() as conn:
+        queue.run(conn, reg.name)
+
+
 @eval_app.command("er")
 def eval_er(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
     """Precision/recall/F1 of ER on verified labels; writes reports/er_eval.md."""
@@ -131,3 +143,31 @@ def eval_er(region: Annotated[str | None, typer.Option(help="Region name.")] = N
     with get_engine().connect() as conn:
         result = er_eval.evaluate(conn, reg.name)
     typer.echo(er_eval.summary_json(result))
+
+
+@app.command()
+def resolve(
+    region: Annotated[
+        str | None, typer.Option(help="Region name from config/regions.yaml.")
+    ] = None,
+) -> None:
+    """Golden records: stable entity ids, field survivorship with provenance, quality score."""
+    settings = get_settings()
+    stats = resolve_region(get_engine(), load_region(region, settings))
+    typer.echo(json.dumps(stats, indent=2))
+
+
+@report_app.command("quality")
+def report_quality(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
+    """Coverage, flags, conflicts, freshness, quality score and top data gaps."""
+    reg = load_region(region, get_settings())
+    with get_engine().connect() as conn:
+        typer.echo(reports.write("quality.md", reports.quality_report(conn, reg.name)))
+
+
+@report_app.command("changes")
+def report_changes(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
+    """New, merged, retired and changed entities since the previous resolve run."""
+    reg = load_region(region, get_settings())
+    with get_engine().connect() as conn:
+        typer.echo(reports.write("changes.md", reports.changes_report(conn, reg.name)))
