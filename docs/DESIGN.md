@@ -128,6 +128,35 @@ backs an entity (NPS, a RIDB operator, OSM only). On the sierra data, season dat
 for every NPS-backed campground and for none of the Forest Service or OSM-only ones: the
 official-website extraction stage is aimed at exactly that gap.
 
+## Responsible crawling
+
+Seeds are the website URLs of active campground entities, and they are untrusted input:
+canonicalized, then screened before any request. Screening rejects non-http(s) schemes, IP
+literals and hosts that resolve to private, loopback or link-local addresses (SSRF), social
+media, aggregators and review sites, the API sources' own domains (nps.gov, recreation.gov),
+and booking engines, which are recorded as an attribute instead of being followed. Every
+seed, crawled or not, gets a `sites` row with its outcome or skip reason.
+
+Politeness is configuration (`config/crawl.yaml`): robots.txt obeyed, an honest User-Agent
+with a contact URL, one request per host at a time, a download delay plus AutoThrottle,
+timeouts and a size cap. `Retry-After` on 429/503 is honoured (capped), with exponential
+backoff otherwise. A captcha or block page stops the whole host: a per-host lock in a
+downloader middleware makes sure no queued request slips out after the block page arrives.
+Nothing is ever worked around.
+
+Scope: same registrable domain; on multi-location hosts (fs.usda.gov, chains), the seed's
+path subtree, or its identifying query parameters when the path is generic. At most 6 pages
+per site and depth 2, spent on the most relevant links (rates, sites, amenities, season...);
+blog, events, cart, login and calendar/date links are never followed. Pages are keyed by
+their canonical URL (dedup) but fetched at their real URL: requesting the canonical form
+(without `www`) only bounces off a redirect, a bug the first real crawl exposed.
+
+Every attempt is a `pages` row (outcome, flags, status, render mode, content hash) and every
+body is stored gzipped in the raw store. Flags: soft 404, parked domain, off-domain redirect
+(with booking platform), non-HTML (PDFs stored for later), blocked, robots-blocked,
+needs-render (thin static text and no embedded JSON). Re-crawls send `If-None-Match` /
+`If-Modified-Since`; a 304 or an identical content hash means no re-extraction.
+
 ## Edge cases found in real data
 
 Logged as they are discovered; each handled case has a test.
@@ -149,5 +178,8 @@ Logged as they are discovered; each handled case has a test.
 | OSM | 6 organized camps (`leisure=summer_camp`, or run by a university, church or city: Lair of the Golden Bear, Camp Wawona, San José Family Camp) and 5 cabin-only lodges are tagged `tourism=camp_site`. | Excluded with reason `organized_camp` / `lodging_only` and a warning flag for review. |
 | OSM | Renames are recorded in `name_old` / `was:name` ("Camp 4" was "Sunnyside Walk-in Campground"; "AutoCamp Yosemite" was a KOA). | Kept as `alt_names`, used by search and matching. |
 | OSM | Operator values contain typos ("Bureau of Land Managment", "Californa State Parks"). | Operator type uses tolerant patterns; the raw operator name is kept. |
+| Web | fs.usda.gov answers an identified crawler with "The request is blocked" (403), even for robots.txt. 61 of the 78 crawlable seeds are on that host. | The host is stopped after the first block page and recorded as `blocked`; no workaround. The Forest Service gap is addressed from RIDB's own facility descriptions instead (see the extraction stage). |
+| Web | Most official sites redirect `example.com` to `www.example.com`. Requesting the canonical form (no `www`) made every seed "redirect to itself". | Canonical URL for identity, real URL for fetching; same-page and in-scope redirects are followed, a seed that moved within its domain moves the site's scope. |
+| Web | Scrapy's `DepthMiddleware` owns the `depth` request meta key and increments it for any request yielded from a callback, so a followed redirect looked one level deeper. | The crawler uses its own `poi_depth` key; the end-to-end test covers a redirected seed. |
 | NPS | Structured season dates sometimes disagree with the narrative text (Crane Flat: data opens May 22, text says "mid-June"). | Both kept (`season`, `season_note`); arbitration belongs to survivorship and the LLM stage. |
 | NPS | Phone numbers are formatted `209/372-xxxx`. A first version of the contact scrubber and of the publication gate did not recognise `/` as a separator, and the first phone normalizer split such numbers in two. | All three treat a bare `/` as part of the number; values under phone-like keys are scrubbed whatever their formatting. |

@@ -11,8 +11,8 @@ Website-extracted records later join matching as one more source (M7), and we me
 | M2 | Canonical model: normalization + validation flags (names, contact, geometry, categories, seasons) | ✅ done |
 | M3 | Entity resolution on structured sources: blocking, features, log-odds scoring, constrained clustering, hierarchy; label CLI, ER gold set + eval | ⏳ awaiting verified labels |
 | M4 | Golden records: survivorship, stable IDs + redirects, overrides, quality score; quality / changes reports | ✅ done |
-| M5 | Responsible crawler seeded from M1 records; crawl stats | ⏳ next |
-| M6 | Reduce + deterministic extraction; token metrics per representation | |
+| M5 | Responsible crawler seeded from M1 records; crawl stats | ✅ done |
+| M6 | Reduce + deterministic extraction; token metrics per representation | ⏳ next |
 | M7 | LLM extraction: cost ladder, guardrails, ledger, dry-run → approval → run; extraction gold set + eval; ablation; extracted records join ER; coverage delta vs cost | |
 | M8 | Serving (small): ES index with alias swap; search, bbox, along-route, get-by-id (+ redirects), health | |
 | M9 | Polish: demo snapshot, `make demo`, README / DESIGN / aws docs with measured numbers | |
@@ -70,3 +70,14 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] `poi review queue` writes decisions to the overrides file
 - [x] Quality score with components; `poi report quality` (coverage, flags, gaps by segment) and `poi report changes`
 - [x] Unit tests (ids, survivorship, quality, overrides) and an entity-lifecycle integration test
+
+## M5 checklist
+- [x] Seeds from active entities, screened: scheme, SSRF (IP literals, private/loopback/link-local DNS), social, aggregators, API domains, booking engines (recorded as attribute)
+- [x] Scrapy: robots.txt, honest User-Agent, 1 request per host, delay + AutoThrottle, timeouts, size cap
+- [x] Retry-After middleware (capped, exponential backoff); block/captcha stops the whole host (per-host lock)
+- [x] Scope: registrable domain, path subtree / identifying query on multi-location hosts, depth 2, 6 pages ranked by relevance; traps excluded
+- [x] Canonical URL for identity, real URL for fetching; www and moved-seed redirects followed in scope
+- [x] Detection: soft 404, parked, off-domain redirect, non-HTML (PDF stored), blocked, needs-render
+- [x] Raw bodies gzipped in the raw store; `sites` and `pages` rows; conditional re-crawls (ETag / Last-Modified, content hash)
+- [x] Playwright rendering behind `--render` (only for pages flagged needs-render)
+- [x] Unit tests and an end-to-end crawl test against a local fixture server

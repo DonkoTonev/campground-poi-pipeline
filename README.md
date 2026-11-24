@@ -23,6 +23,8 @@ make normalize  # canonical poi_records + quality_flags
 make match      # entity resolution
 make resolve    # golden records with stable ids and provenance
 make report     # reports/quality.md, reports/changes.md
+uv run poi crawl --plan   # screen website seeds, fetch nothing
+make crawl      # crawl official campground websites (robots.txt, 1 request/host, honest UA)
 uv run poi review queue   # decide gray-zone pairs and conflicts -> data/overrides.yaml
 uv run poi review label   # verify ER gold pairs
 make eval       # precision / recall on verified labels
@@ -71,6 +73,14 @@ is 0.75 for two sources and 0.99 for three, against 0.58 for single-source entit
 [quality report](reports/quality.md) shows where data is missing and which source would close
 the gap: season dates are known for every NPS-backed campground and for none of the 69 Forest
 Service or 215 OSM-only ones.
+
+Crawling official websites (`poi crawl`): 121 candidate URLs → 78 crawlable seeds after
+screening (30 on API domains, 10 booking engines, 2 aggregators, 1 unofficial site skipped).
+15 sites crawled successfully (77 pages, about 5 per site), 2 seeds are dead, and 61 seeds on
+fs.usda.gov were not crawled: the host answers an identified crawler with a block page, so the
+crawler stopped there after one request instead of working around it. No page needed a
+headless browser. Fetched pages average 144 KB of HTML but only about 5,600 characters of
+visible text, which is the first hint of how much cheaper extraction gets after reduction.
 
 ## Data sources and attribution
 - Map data © OpenStreetMap contributors, available under the Open Database License (ODbL).
