@@ -1,0 +1,25 @@
+# USD per 1M tokens. Verified 2026-11-24 against the providers' pricing pages
+# (platform.claude.com/docs/en/about-claude/pricing, aistudio.google.com/docs/pricing).
+anthropic:
+  batch_discount: 0.5              # Message Batches: 50% of input and output
+  models:
+    claude-haiku-5-5:
+      input: 0.10
+      output: 0.50
+      cache_write_5m: 0.125        # 1.25x input
+      cache_write_1h: 0.20         # 2x input
+      cache_read: 0.01             # 0.1x input
+      long_context_tokens: 100000  # prompts above this are billed at 5x
+      long_context_multiplier: 5
+    claude-sonnet-5-5:
+      input: 2.00
+      output: 10.00
+      cache_write_5m: 2.50
+      cache_write_1h: 4.00
+      cache_read: 0.10             # 0.05x input on Sonnet 5.5
+
+gemini:
+  tier: free                       # live runs: free tier, billed $0
+  paid_reference:                  # Standard paid tier list prices, for reference only
+    gemini-3.5-flash-lite: {input: 0.30, output: 2.50, cache_read: 0.03}
+    gemini-3.6-flash: {input: 0.75, output: 3.75, cache_read: 0.075}

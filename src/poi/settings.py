@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     crawl_allow_private_hosts: bool = False
 
     anthropic_api_key: SecretStr | None = None
+    gemini_api_key: SecretStr | None = None
     ridb_api_key: SecretStr | None = None
     nps_api_key: SecretStr | None = None
 

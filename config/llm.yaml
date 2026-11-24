@@ -1,0 +1,22 @@
+# LLM providers for extraction. Live runs use Gemini's free tier (no Anthropic budget); the
+# Anthropic adapter is implemented and fixture-tested and can be switched on here.
+provider: gemini
+max_output_tokens: 4096
+escalation:
+  max_ungrounded_share: 0.25   # more than this share of checkable values ungrounded -> retry on the strong model
+
+gemini:
+  cheap: gemini-3.5-flash-lite
+  strong: gemini-3.6-flash
+  thinking_level:              # lowest level each model allows ("minimal" = near-off)
+    gemini-3.5-flash-lite: MINIMAL
+    gemini-3.6-flash: MINIMAL
+  # Free-tier quotas are per project and per model and are shown in AI Studio, not in the
+  # docs. These conservative defaults stay under typical free-tier limits; adjust to yours.
+  limits:
+    gemini-3.5-flash-lite: {rpm: 10, tpm: 200000, rpd: 400}
+    gemini-3.6-flash: {rpm: 5, tpm: 200000, rpd: 100}
+
+anthropic:
+  cheap: claude-haiku-5-5
+  strong: claude-sonnet-5-5
