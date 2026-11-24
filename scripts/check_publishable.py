@@ -8,7 +8,9 @@ with project rules gitleaks cannot know about:
 - email addresses other than allow-listed placeholder/noreply domains;
 - North American phone numbers other than the fictional 555-01xx range.
 
-Run: `uv run python scripts/check_publishable.py` (also a pre-push hook and a CI step).
+Run: `uv run python scripts/check_publishable.py` (pre-push hook and CI step), or with
+`--staged` for just the staged diff (pre-commit hook), which catches problems before they
+become part of a commit.
 """
 
 from __future__ import annotations
@@ -40,11 +42,16 @@ def git(*args: str) -> str:
     ).stdout
 
 
-def added_lines() -> list[tuple[str, str]]:
-    """(path, line) for every line ever added in any commit."""
+def added_lines(staged: bool = False) -> list[tuple[str, str]]:
+    """(path, line) for every line ever added in any commit, or only in the staged diff."""
     out: list[tuple[str, str]] = []
     path = ""
-    for line in git("log", "--all", "-p", "--no-color", "--format=").splitlines():
+    diff = (
+        git("diff", "--cached", "--no-color")
+        if staged
+        else git("log", "--all", "-p", "--no-color", "--format=")
+    )
+    for line in diff.splitlines():
         if line.startswith("+++ "):
             path = line[6:] if line.startswith("+++ b/") else ""
         elif line.startswith("+") and path and not SKIP_CONTENT.search(path):
@@ -69,24 +76,31 @@ def line_problems(path: str, line: str) -> list[str]:
 
 
 def main() -> int:
+    """Check the whole history, or with `--staged` only what is about to be committed."""
+    staged = "--staged" in sys.argv[1:]
     problems: list[str] = []
 
-    paths = set(git("log", "--all", "--name-only", "--format=").split())
+    if staged:
+        paths = set(git("diff", "--cached", "--name-only").split())
+    else:
+        paths = set(git("log", "--all", "--name-only", "--format=").split())
     problems += [
         f"forbidden path in history: {p}" for p in sorted(paths) if FORBIDDEN_PATH.search(p)
     ]
 
-    for ident in set(git("log", "--all", "--format=%ae%n%ce").split()):
+    identities = set() if staged else set(git("log", "--all", "--format=%ae%n%ce").split())
+    for ident in identities:
         if not ident.endswith(("@users.noreply.github.com", "noreply@github.com")):
             problems.append(f"non-noreply author/committer email: {ident}")
 
-    for path, line in added_lines():
+    for path, line in added_lines(staged):
         problems += line_problems(path, line)
 
     if problems:
         print("NOT publishable:", *sorted(set(problems)), sep="\n  ")
         return 1
-    print(f"publishable: {len(paths)} paths in history checked")
+    scope = "staged" if staged else "in history"
+    print(f"publishable: {len(paths)} paths {scope} checked")
     return 0
 
 
