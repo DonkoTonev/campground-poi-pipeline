@@ -3,18 +3,22 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated
+from typing import Annotated, cast
 
 import typer
 
 from poi.crawl.stage import crawl_region
 from poi.db import check_extensions, get_engine
 from poi.eval import er as er_eval
+from poi.eval import extraction as extraction_eval
+from poi.extract.llm.replay import Mode
+from poi.extract.stage import build_client, dry_run, extract_region
 from poi.ingest import ingest_source
 from poi.log import configure_logging, get_logger
 from poi.match.stage import match_region
 from poi.normalize.stage import normalize_region
 from poi.reduce.stage import reduce_region
+from poi.report import cost as cost_report
 from poi.report import quality as reports
 from poi.report import tokens as token_report
 from poi.resolve.stage import resolve_region
@@ -221,6 +225,79 @@ def report_tokens(region: Annotated[str | None, typer.Option(help="Region name."
     reg = load_region(region, get_settings())
     with get_engine().connect() as conn:
         typer.echo(reports.write("tokens.md", token_report.tokens_report(conn, reg.name)))
+
+
+@app.command()
+def extract(
+    region: Annotated[str | None, typer.Option(help="Region name.")] = None,
+    dry_run_: Annotated[
+        bool, typer.Option("--dry-run", help="Count tokens and estimate cost; generate nothing.")
+    ] = False,
+    mode: Annotated[
+        str, typer.Option(help="replay: recordings only; record: call when missing; live.")
+    ] = "record",
+    provider: Annotated[str | None, typer.Option(help="gemini or anthropic.")] = None,
+    kind: Annotated[str | None, typer.Option(help="web_bundle or ridb_description.")] = None,
+    limit: Annotated[int | None, typer.Option(help="At most this many documents.")] = None,
+) -> None:
+    """LLM extraction over reduced documents (ladder, grounding, ledger)."""
+    if mode not in ("replay", "record", "live"):
+        raise typer.BadParameter("mode must be replay, record or live")
+    settings = get_settings()
+    reg = load_region(region, settings)
+    engine = get_engine()
+    if dry_run_:
+        setup = build_client(engine, settings, "record", provider)
+        typer.echo(json.dumps(dry_run(engine, settings, setup, kind, limit), indent=2))
+        return
+    stats = extract_region(
+        engine,
+        settings,
+        reg,
+        mode=cast(Mode, mode),
+        provider=provider,
+        kind=kind,
+        limit=limit,
+    )
+    typer.echo(json.dumps(stats, indent=2))
+
+
+@eval_app.command("extraction")
+def eval_extraction(
+    live: Annotated[bool, typer.Option(help="Call the provider for missing recordings.")] = False,
+    provider: Annotated[str | None, typer.Option(help="gemini or anthropic.")] = None,
+) -> None:
+    """Per-field accuracy, hallucination bait, cost per page; writes reports/extraction_eval.md."""
+    setup = build_client(get_engine(), get_settings(), "record" if live else "replay", provider)
+    result = extraction_eval.evaluate(get_engine(), setup)
+    typer.echo(json.dumps({k: v for k, v in result.items() if k != "errors"}, indent=2))
+
+
+@eval_app.command("ablation")
+def eval_ablation(
+    live: Annotated[bool, typer.Option(help="Call the provider for missing recordings.")] = False,
+    provider: Annotated[str | None, typer.Option(help="gemini or anthropic.")] = None,
+) -> None:
+    """Raw HTML vs cleaned HTML vs Markdown vs text: tokens and accuracy (reports/ablation.md)."""
+    setup = build_client(get_engine(), get_settings(), "record" if live else "replay", provider)
+    rows = extraction_eval.ablation(get_engine(), setup)
+    typer.echo(
+        json.dumps(
+            {
+                r: {k: v for k, v in m.items() if k not in ("errors", "per_field")}
+                for r, m in rows.items()
+            },
+            indent=2,
+        )
+    )
+
+
+@report_app.command("cost")
+def report_cost(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
+    """Ledger totals, per-input cost, escalation and cache rates, Claude estimates, 1M pages."""
+    reg = load_region(region, get_settings())
+    with get_engine().connect() as conn:
+        typer.echo(reports.write("cost.md", cost_report.cost_report(conn, reg.name)))
 
 
 if __name__ == "__main__":
