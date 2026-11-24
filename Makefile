@@ -5,7 +5,7 @@ UV := uv run
 
 setup:  ## install deps + git hooks
 	uv sync
-	$(UV) pre-commit install
+	$(UV) pre-commit install  # installs pre-commit and pre-push hooks
 
 up:  ## start Postgres/PostGIS and Elasticsearch, wait until healthy
 	docker compose up -d --wait
@@ -36,3 +36,7 @@ fmt:
 
 typecheck:
 	$(UV) mypy
+
+.PHONY: publishable
+publishable:  ## full-history leak + publication checks (also runs on every push)
+	$(UV) pre-commit run --hook-stage pre-push --all-files

@@ -1,3 +1,5 @@
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -17,3 +19,21 @@ repos:
     rev: v8.30.0
     hooks:
       - id: gitleaks
+  # The repo is public: every push is a publication. Re-check the whole history before pushing.
+  - repo: local
+    hooks:
+      - id: gitleaks-history
+        name: gitleaks (full history)
+        language: golang
+        additional_dependencies: [github.com/zricethezav/gitleaks/v8@v8.30.0]
+        entry: gitleaks git --redact --no-banner .
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: publishable
+        name: publication gate (paths, identities, emails, phones)
+        language: system
+        entry: uv run python scripts/check_publishable.py
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

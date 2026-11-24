@@ -27,4 +27,5 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] Alembic baseline: `postgis`, `pg_trgm`, `runs`
 - [x] pre-commit: ruff, ruff-format, gitleaks
 - [x] GitHub Actions: ruff, mypy, alembic, pytest with a PostGIS service
-- [x] Private repo created and pushed; author identity verified
+- [x] Repo created and pushed (public); author identity verified
+- [x] Publication gate: full-history gitleaks + `scripts/check_publishable.py` on every push and in CI
