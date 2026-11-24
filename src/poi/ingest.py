@@ -65,7 +65,10 @@ def content_hash(record: SourceRecord) -> str:
     return hashlib.sha256(canon.encode()).hexdigest()
 
 
-def _upsert(conn: Connection, record: SourceRecord, raw_id: int, region: str, run_id: int) -> str:
+def upsert_source_record(
+    conn: Connection, record: SourceRecord, raw_id: int | None, region: str, run_id: int
+) -> str:
+    """Insert or update one source record; returns "new", "changed" or "unchanged"."""
     row = conn.execute(
         UPSERT,
         {
@@ -113,7 +116,9 @@ def ingest_source(
                 if rec.source_id in seen:  # pagination overlap: count once
                     continue
                 seen.add(rec.source_id)
-                outcomes[_upsert(conn, rec, fetched.raw_object_id, region.name, run.id)] += 1
+                outcomes[
+                    upsert_source_record(conn, rec, fetched.raw_object_id, region.name, run.id)
+                ] += 1
             # Only reached if the whole source was read without error.
             missed = conn.execute(
                 text(
