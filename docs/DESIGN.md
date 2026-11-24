@@ -87,6 +87,47 @@ similar names that blocking missed). Suggested labels come from the model and ar
 unverified; `poi review label` hides them by default to avoid anchoring the reviewer.
 `poi eval er` reports precision and recall on verified labels only, with Wilson intervals.
 
+## Golden records, stable ids and manual fixes
+
+**One entity per real campground, with an id consumers can keep.** Each `poi resolve` maps
+the new clusters to the previous entities by member overlap, using record references
+(`source:source_id`) rather than database ids. The entity with the largest overlap keeps its
+id. When two entities merge, the loser becomes `merged` and gets an `entity_redirects` row
+(chains are compressed, so every lookup is one hop). When an entity splits, the largest part
+keeps the id and the rest get new ids. An entity whose records all disappear is `retired`;
+nothing is hard-deleted. A test walks one entity through a split and a merge back.
+
+**Field-level survivorship** (`config/survivorship.yaml`). Equal candidate values form a
+group; group strength is the highest source trust in it plus a bonus for each additional
+independent source that agrees, so two agreeing sources can outvote one more trusted source.
+Trust is per field: geometry prefers a mapped OSM polygon over any agency point (entrance,
+office or centroid); reservability prefers RIDB; capacity, prices and seasons prefer NPS, and
+the official website (`web`) once it exists. Names are a trust-weighted vote of normalized
+forms; every other spelling becomes an `alt_name`. Each `entity_fields` row keeps the winning
+value, its source record, the reason it won, and every alternative with provenance.
+
+**Conflicts are flagged, not guessed.** A disagreement where the losing side is also trusted
+is a conflict. On high-impact fields (reservability, first-come-first-served, season) it is a
+review item; member points more than 1 km from the chosen geometry are a `geometry_conflict`
+(RIDB's Crane Flat point is 4.4 km from the OSM polygon); conflicting amenity values are
+recorded too (OSM marks a dump station at Lower and North Pines, NPS says there is none).
+
+**Manual fixes are versioned rules.** `poi review queue` walks gray-zone pairs and conflicts
+and writes decisions to `data/overrides.yaml`: pair decisions (`match` / `non_match`, applied
+as must-link / cannot-link in clustering) and field values (`amenities.showers` style paths
+for single amenities). Overrides reference records, not entities, so they survive rebuilds
+and merges, and they are re-applied on every run.
+
+**Quality score** = 0.4 completeness (8 key fields) + 0.2 corroboration (number of sources) +
+0.2 freshness (missed runs, stale seasons) + 0.2 validity (error and warning flags). It is
+stored with its components and the list of missing fields, used for search ranking, and
+broken down in `reports/quality.md`.
+
+**The quality report names the next source to add.** Coverage gaps are broken down by what
+backs an entity (NPS, a RIDB operator, OSM only). On the sierra data, season dates are known
+for every NPS-backed campground and for none of the Forest Service or OSM-only ones: the
+official-website extraction stage is aimed at exactly that gap.
+
 ## Edge cases found in real data
 
 Logged as they are discovered; each handled case has a test.

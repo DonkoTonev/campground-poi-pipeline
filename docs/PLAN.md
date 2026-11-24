@@ -10,8 +10,8 @@ Website-extracted records later join matching as one more source (M7), and we me
 | M1 | Ingest OSM (Overpass), RIDB, NPS → raw store + `source_records`; counts per source | ✅ done |
 | M2 | Canonical model: normalization + validation flags (names, contact, geometry, categories, seasons) | ✅ done |
 | M3 | Entity resolution on structured sources: blocking, features, log-odds scoring, constrained clustering, hierarchy; label CLI, ER gold set + eval | ⏳ awaiting verified labels |
-| M4 | Golden records: survivorship, stable IDs + redirects, overrides, quality score; quality / changes reports | |
-| M5 | Responsible crawler seeded from M1 records; crawl stats | |
+| M4 | Golden records: survivorship, stable IDs + redirects, overrides, quality score; quality / changes reports | ✅ done |
+| M5 | Responsible crawler seeded from M1 records; crawl stats | ⏳ next |
 | M6 | Reduce + deterministic extraction; token metrics per representation | |
 | M7 | LLM extraction: cost ladder, guardrails, ledger, dry-run → approval → run; extraction gold set + eval; ablation; extracted records join ER; coverage delta vs cost | |
 | M8 | Serving (small): ES index with alias swap; search, bbox, along-route, get-by-id (+ redirects), health | |
@@ -60,3 +60,13 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] Gold set suggestion (200 pairs, stratified) and `poi review label`
 - [ ] Labels verified by a person
 - [ ] `poi eval er` on verified labels, thresholds tuned, numbers in README
+
+## M4 checklist
+- [x] `entities`, `entity_members`, `entity_fields` (value, provenance, reason, alternatives), `entity_redirects`, `entity_changes` (migration 0005)
+- [x] Stable ids by member overlap: merge → redirect, split → largest part keeps id, retire, never delete
+- [x] Survivorship in YAML: per-field trust, corroboration, polygon-first geometry, name vote, alt names
+- [x] High-impact, geometry and amenity conflicts flagged for review
+- [x] `data/overrides.yaml`: match decisions (must/cannot link) and field values, applied every run
+- [x] `poi review queue` writes decisions to the overrides file
+- [x] Quality score with components; `poi report quality` (coverage, flags, gaps by segment) and `poi report changes`
+- [x] Unit tests (ids, survivorship, quality, overrides) and an entity-lifecycle integration test

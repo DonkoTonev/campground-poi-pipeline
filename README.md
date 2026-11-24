@@ -21,6 +21,9 @@ uv run poi doctor
 make ingest     # OSM always; RIDB / NPS when their keys are set (otherwise skipped with a log)
 make normalize  # canonical poi_records + quality_flags
 make match      # entity resolution
+make resolve    # golden records with stable ids and provenance
+make report     # reports/quality.md, reports/changes.md
+uv run poi review queue   # decide gray-zone pairs and conflicts -> data/overrides.yaml
 uv run poi review label   # verify ER gold pairs
 make eval       # precision / recall on verified labels
 ```
@@ -60,6 +63,14 @@ Entity resolution (`poi match`) turns the 379 campground records into 300 cluste
 merged, 15 campgrounds confirmed by all three sources, 36 pairs in the review queue, 5 group or
 horse areas linked to a parent campground. Precision and recall are not reported yet: they
 will be computed on a gold set of 200 pairs once a person has verified the labels.
+
+Golden records (`poi resolve`): 300 entities with stable ids, each field chosen by
+configurable source trust and corroboration, with every alternative and its provenance kept.
+60 entities are confirmed by more than one source (15 by all three); their mean quality score
+is 0.75 for two sources and 0.99 for three, against 0.58 for single-source entities. The
+[quality report](reports/quality.md) shows where data is missing and which source would close
+the gap: season dates are known for every NPS-backed campground and for none of the 69 Forest
+Service or 215 OSM-only ones.
 
 ## Data sources and attribution
 - Map data © OpenStreetMap contributors, available under the Open Database License (ODbL).

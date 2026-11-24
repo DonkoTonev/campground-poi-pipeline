@@ -4,6 +4,8 @@
 - `make setup` (deps + git hooks), `make up` / `make down` (Postgres+PostGIS, Elasticsearch), `make migrate`
 - `make lint` (ruff + format check + mypy strict), `make test` (integration tests skip if Postgres is down)
 - `uv run poi --help` lists the pipeline stages; `uv run poi doctor` checks config without printing secrets
+- Pipeline order: `ingest → normalize → match → resolve → report`; each stage is idempotent
+- Manual fixes go in `data/overrides.yaml` (via `poi review queue`), never as direct DB edits
 
 ## Conventions
 - Python 3.12, typed (mypy strict), small modules under `src/poi/<stage>/`.
