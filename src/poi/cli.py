@@ -14,7 +14,9 @@ from poi.ingest import ingest_source
 from poi.log import configure_logging, get_logger
 from poi.match.stage import match_region
 from poi.normalize.stage import normalize_region
+from poi.reduce.stage import reduce_region
 from poi.report import quality as reports
+from poi.report import tokens as token_report
 from poi.resolve.stage import resolve_region
 from poi.review import gold, label, queue
 from poi.settings import PROJECT_ROOT, get_settings, load_region
@@ -203,6 +205,22 @@ def crawl(
         allow_private=settings.crawl_allow_private_hosts,
     )
     typer.echo(json.dumps(stats, indent=2))
+
+
+@app.command()
+def reduce(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
+    """Crawled pages and RIDB descriptions → capped LLM input documents, with token metrics."""
+    settings = get_settings()
+    stats = reduce_region(get_engine(), settings, load_region(region, settings))
+    typer.echo(json.dumps(stats, indent=2))
+
+
+@report_app.command("tokens")
+def report_tokens(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
+    """Tokens per representation (raw HTML vs cleaned vs Markdown vs text) and documents."""
+    reg = load_region(region, get_settings())
+    with get_engine().connect() as conn:
+        typer.echo(reports.write("tokens.md", token_report.tokens_report(conn, reg.name)))
 
 
 if __name__ == "__main__":
