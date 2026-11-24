@@ -109,3 +109,11 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 - [x] `GET /campgrounds/search`: fuzzy text, filters, distance sort, function_score (relevance × quality × distance decay)
 - [x] `GET /campgrounds/bbox`, `POST /campgrounds/along-route` (PostGIS, driving order), `GET /campgrounds/{id}` (provenance, 301 / 410 / 404), `GET /health`
 - [x] OpenAPI docs at /docs; unit tests for query builders; API integration tests against PostGIS and Elasticsearch (also in CI)
+
+## M9 checklist
+- [x] Demo snapshot (structured records, contact data scrubbed, ODbL attribution) and keyless `make demo`
+- [x] Fresh-clone check: demo pipeline and API work without `.env` or keys
+- [x] README with architecture, quick start, measured results, edge cases, decisions, limitations
+- [x] DESIGN: cost ladder, entity resolution and the 200 m question, survivorship, 1M POIs
+- [x] docs/aws.md production sketch
+- [ ] Live LLM numbers (waits for the API key) and ER precision/recall (waits for verified labels)

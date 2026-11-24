@@ -1,112 +1,223 @@
 # campground-poi-pipeline
 
-A small, production-minded data pipeline that aggregates campground points of interest from
-several public sources (OpenStreetMap, Recreation.gov RIDB, NPS API, official campground websites),
-extracts structured facts from websites with an LLM at the lowest possible cost, resolves
-duplicates — including near neighbours that are *not* duplicates — builds golden records with
-field-level provenance, measures its own quality and cost, and serves the result through search
-and an API.
+A small, production-minded data pipeline for campground points of interest. It aggregates
+records from public sources (OpenStreetMap, Recreation.gov RIDB, the NPS API) and official
+campground websites, uses an LLM only where it adds value and as cheaply as possible, resolves
+duplicates (including near neighbours that are *not* duplicates), builds golden records with
+field-level provenance, measures its own quality and cost, and serves the result through
+search and an API. Depth and correctness over breadth: one region (Yosemite and the Eastern
+Sierra), where federal, state, county and private campgrounds sit close together.
 
-> Work in progress. Progress is tracked in [docs/PLAN.md](docs/PLAN.md). Results will be filled
-> in with measured numbers only.
+> **Status.** Everything below the LLM stage is built and measured on real data. The LLM
+> extraction stage is **implemented and tested with fixtures, but has not been run live yet**,
+> so this README reports no extraction accuracy or cost; those sections fill in after the first
+> live run. Entity-resolution precision and recall wait for the gold labels to be verified by a
+> person. Progress: [docs/PLAN.md](docs/PLAN.md).
 
-## Quick start (development)
+## Architecture
 
-```bash
-make setup      # uv sync + pre-commit hooks
-cp .env.example .env   # then fill in keys and CONTACT_URL
-make up migrate # Postgres/PostGIS + Elasticsearch, schema
-make lint test
-uv run poi doctor
-make ingest     # OSM always; RIDB / NPS when their keys are set (otherwise skipped with a log)
-make normalize  # canonical poi_records + quality_flags
-make match      # entity resolution
-make resolve    # golden records with stable ids and provenance
-make report     # reports/quality.md, reports/changes.md
-uv run poi crawl --plan   # screen website seeds, fetch nothing
-make crawl      # crawl official campground websites (robots.txt, 1 request/host, honest UA)
-make reduce     # pages + RIDB descriptions -> capped LLM input documents, token metrics
-uv run poi review queue   # decide gray-zone pairs and conflicts -> data/overrides.yaml
-make index serve  # search index + API
-uv run poi review label   # verify ER gold pairs
-make eval       # precision / recall on verified labels
+```mermaid
+flowchart LR
+  subgraph sources [Sources]
+    OSM[OpenStreetMap<br/>Overpass]
+    RIDB[Recreation.gov<br/>RIDB API]
+    NPS[NPS API]
+    WEB[Official websites]
+  end
+  OSM & RIDB & NPS --> ING[ingest] --> RAW[(raw store<br/>local / S3)]
+  ING --> SR[(source_records)]
+  SR -->|website seeds| CR[crawl<br/>Scrapy, robots.txt] --> RAW
+  CR --> RED[reduce<br/>HTML → Markdown,<br/>deterministic facts]
+  RIDB -.->|facility descriptions| RED
+  RED --> EXT[extract<br/>Haiku → Sonnet,<br/>grounding, ledger]
+  EXT -->|web / ridb_description| SR
+  SR --> NORM[normalize<br/>+ quality flags] --> MATCH[match<br/>blocking, log-odds,<br/>constrained clusters]
+  MATCH --> RES[resolve<br/>stable ids, survivorship,<br/>overrides]
+  RES --> PG[(Postgres + PostGIS<br/>golden records)]
+  PG --> IDX[index<br/>alias swap] --> ES[(Elasticsearch)]
+  PG & ES --> API[FastAPI]
+  PG --> REP[reports: quality,<br/>tokens, cost, changes]
+  REV[review CLI] -->|data/overrides.yaml| MATCH & RES
 ```
 
-## Results so far
+Every stage is a `poi <stage>` command, idempotent, and records a `runs` row with its
+parameters and stats. Raw responses are stored once and reprocessed many times.
 
-Measured on the default `sierra` region (Yosemite and the Eastern Sierra), 2026-11-24.
-Numbers for later stages will be added as they are measured.
+## Quick start: `make demo`
 
-| Source | Records in region | Located | With polygon | Requests (first run) |
-|---|---|---|---|---|
-| OpenStreetMap (Overpass) | 289 | 289 | 158 | 1 |
-| Recreation.gov RIDB | 89 | 82 | – | 54 |
-| NPS API | 16 | 16 | – | 1 |
+Needs Docker and [uv](https://docs.astral.sh/uv/). No API keys, no crawling.
 
-RIDB needs three listing strategies because its pagination silently skips facilities; the state
-listing alone found 68 of the 82 located campgrounds. Details and other real-data edge cases:
+```bash
+git clone https://github.com/DonkoTonev/campground-poi-pipeline && cd campground-poi-pipeline
+make demo
+```
+
+It starts PostGIS and Elasticsearch, loads a committed snapshot of the structured records
+(contact data scrubbed, see [data/demo/LICENSE.md](data/demo/LICENSE.md)) into its own
+database, runs normalize → match → resolve → index, prints example queries and starts the API
+on <http://127.0.0.1:8000/docs>. On a machine with warm package and image caches the pipeline
+part took 6 seconds; a first run is dominated by downloading the Docker images.
+
+## Full run (with API keys)
+
+```bash
+make setup                 # uv sync + git hooks
+cp .env.example .env       # RIDB_API_KEY, NPS_API_KEY, ANTHROPIC_API_KEY, CONTACT_URL
+make up migrate
+make ingest normalize match resolve      # structured sources → golden records
+uv run poi crawl --plan && make crawl     # official websites (robots.txt, 1 request/host)
+make reduce                               # pages + RIDB descriptions → LLM input documents
+uv run poi extract --dry-run              # free token count and cost estimate, nothing generated
+uv run poi extract --max-cost-usd 2       # Haiku, escalation to Sonnet; add --batch for 50% off
+make normalize match resolve index report
+make serve
+```
+
+Human-in-the-loop: `uv run poi review label` verifies entity-resolution gold pairs;
+`uv run poi review queue` decides gray-zone pairs and field conflicts and writes the decisions
+to `data/overrides.yaml`, which every run applies.
+
+## Results
+
+Measured on the `sierra` region on 2026-11-24. Every number comes from a pipeline run; the
+reports in [reports/](reports/) are generated from the database.
+
+**Sources → records.** One Overpass query, 54 RIDB pages, one NPS request; a second ingest makes
+0 network requests (raw store).
+
+| Source | Records in region | With coordinates | With polygon |
+|---|---|---|---|
+| OpenStreetMap | 289 | 289 | 158 |
+| Recreation.gov RIDB | 89 | 82 (+7 placed by their rec area) | – |
+| NPS API | 16 | 16 | – |
+
+RIDB's offset pagination silently skips facilities (CA: 1,936 rows, 1,887 unique ids), so the
+adapter combines three listings: the state listing alone found 68 of the 82 located
+campgrounds.
+
+**Normalization.** 379 of 394 records are campgrounds; 15 are excluded and flagged (6 organized
+camps, 5 cabin-only lodges, 1 day-use area, 3 aggregate pseudo-facilities). 47 ALL-CAPS names
+re-cased, 21 P.O.-box addresses, 7 records with (0,0) coordinates, 2 low-precision points and
+2 records whose claimed state contradicts their point, all as flags, none fixed silently.
+
+**Entity resolution.** 379 campground records → **300 entities**: 79 duplicates merged,
+15 entities confirmed by all three sources, 45 by two; 36 pairs in the review queue; 5 group or
+horse areas attached to a parent campground. Upper, Lower and North Pines (within ~300 m) stay
+three entities, each confirmed by OSM, RIDB and NPS. Precision and recall: **not measured yet**;
+a stratified gold set of 200 pairs is waiting for a person to verify the suggested labels.
+
+**Golden records.** Each field is chosen by per-field source trust plus corroboration, with
+every alternative and its provenance kept. Mean quality score: 0.58 for single-source
+entities, 0.75 for two sources, 0.99 for three. Conflicts flagged instead of guessed:
+RIDB's Crane Flat and Wawona points are 3–4 km from where OSM and NPS put them; OSM and NPS
+disagree on dump stations at two Pines campgrounds.
+
+**Data gaps** ([reports/quality.md](reports/quality.md)): season dates are known for 5% of
+entities, and the breakdown says where to get the rest: 100% of NPS-backed campgrounds have
+them, 0% of the 69 Forest Service campgrounds and of the 215 OSM-only ones.
+
+**Crawling.** 121 candidate URLs → 78 crawlable seeds after screening (30 on API domains,
+10 booking engines, 2 aggregators, 1 unofficial site skipped). 15 official sites crawled
+(77 pages, about 5 per site), 2 dead seeds. 61 seeds are on fs.usda.gov, which answers an
+identified crawler with a block page: the crawler stopped after one request and did not work
+around it. The same Forest Service descriptions arrive through the RIDB API, which is used as
+a separate extraction input (`ridb_description`). No page needed a headless browser.
+
+**Reduction** ([reports/tokens.md](reports/tokens.md)), no LLM involved, token counts estimated
+as bytes/4 until calibrated with the API's `count_tokens`:
+
+| Representation | Tokens per page | Share of raw HTML |
+|---|---|---|
+| raw HTML | 36,437 | 100% |
+| cleaned HTML | 2,133 | 5.9% |
+| Markdown + salvaged facts | 947 | 2.6% |
+| plain text | 927 | 2.5% |
+
+Main-content extraction alone kept only 58% of distinct phone numbers (they live in headers
+and footers); a fact-salvage pass brings it to 97% for prices and phones and 96% for months, for
+about 7% more tokens. The LLM inputs are 15 website bundles (about 4,300 tokens each) and
+85 RIDB description documents (about 760 tokens each).
+
+**LLM extraction.** Implemented and tested with fixtures, **not yet run live**: no accuracy,
+cost, cache-hit or escalation numbers yet. [reports/cost.md](reports/cost.md) says the same
+until a live run fills it.
+
+**Serving.** Typo-tolerant search ("tuolume medows" finds Tuolumne Meadows), filters by
+amenity, month open and category, distance decay; along-route queries return campgrounds in
+driving order (Big Oak Flat → Yosemite Valley → Tuolumne lists the Valley campgrounds at
+km 23–27 of a 72 km route).
+
+## Edge cases handled
+
+Matching, normalization and crawling cases have tests; the extraction cases are gold cases,
+scored once the LLM stage runs live. Cases found in real data are logged in
 [docs/DESIGN.md](docs/DESIGN.md#edge-cases-found-in-real-data).
 
-Re-runs are served from the raw store: a second full ingest makes 0 network requests.
+- **Matching:** distinct campgrounds within 200 m (Upper / Lower / North Pines); the same
+  campground 600 m apart or with a 4 km coordinate error; same name in different places; name
+  variants and abbreviations; group and horse camps next to the family campground; group sites
+  inside a campground polygon (child, not merge); shared ranger-district phones; shared
+  recreation.gov id with different names; OSM node + way duplicates; distinct RIDB ids that
+  must never merge; transitive chains; low-precision coordinates; renames (review, old name
+  kept).
+- **Normalization:** (0,0), swapped and sign-flipped coordinates, out-of-region points, a
+  claimed state that contradicts the point, ALL-CAPS names, phone formats and placeholders,
+  "Camp …" names that are youth camps, lodges and day-use areas, meters vs feet, NPS seasons
+  encoded as recurring closures, holiday-anchored seasons, stale seasons.
+- **Crawling:** robots.txt, Retry-After, soft 404, parked domains, off-domain redirects to
+  booking engines, `www` redirects, moved seeds, calendar traps, URL duplicates, SSRF seeds
+  (private IPs, cloud metadata), social media, captcha / block pages stopping the whole host,
+  PDFs.
+- **Extraction** (synthetic gold cases): multi-campground pages, no campground, negations, partial and
+  seasonal amenities, holiday seasons, past-year seasons, three kinds of closure, price ranges
+  with extra fees, CAD and French, prompt injection, hallucination bait, marketing titles,
+  parked domains, very long pages, staff names.
 
-After normalization (`poi normalize`), 379 of 394 records are campgrounds. The other 15 are
-organized camps, cabin-only lodges, a day-use area and aggregate pseudo-facilities, each with
-a flag for review. Field coverage of the campgrounds shows where the gaps are:
+## Design decisions and trade-offs
 
-| Source | Campgrounds | Phone | Website | Season dates | Site count | Drinking water known |
-|---|---|---|---|---|---|---|
-| OSM | 278 | 7 | 105 | 0 | 54 | 22 |
-| RIDB | 85 | 60 | 0 | 0 | 0 | 0 |
-| NPS | 16 | 16 | 15 | 16 | 16 | 16 |
+- **Distance generates candidates and is one feature, never a merge rule.** Conflicting
+  discriminators ("Upper" vs "Lower", "Horse" vs none) outweigh being 25 m apart; a shared
+  recreation.gov id outweighs a 4 km coordinate error.
+- **Precision over recall in matching.** A false merge deletes a real campground from the app;
+  a false split shows a duplicate pin. Gray-zone pairs go to review.
+- **Explainable scoring.** Fellegi–Sunter-style log-odds with hand-set weights; every decision
+  stores its per-feature contributions.
+- **Nothing is fixed silently.** Every rule violation is a `quality_flags` row; unknown is
+  never "no"; manual fixes are versioned rules in `data/overrides.yaml`.
+- **Stable ids.** Entities follow record overlap across runs; merges leave redirects (the API
+  answers 301), nothing is deleted.
+- **The LLM sees as little as possible.** Deterministic facts first, Markdown at 2.6% of raw
+  HTML, one request per site, cheap model first, one escalation, every value grounded in the
+  input, confidence computed rather than asked for, every call in a cost ledger with a
+  dry-run estimate and a hard cost cap.
+- **Postgres is the system of record**, Elasticsearch a rebuildable read model behind an alias.
 
-Season dates are known for 16 of 379 campgrounds, all from NPS. Closing that gap from official
-websites is the job of the LLM extraction stage, and its effect will be measured against this
-baseline.
+Deeper rationale, including what changes at 1M POIs: [docs/DESIGN.md](docs/DESIGN.md).
+Production sketch on AWS: [docs/aws.md](docs/aws.md).
 
-Entity resolution (`poi match`) turns the 379 campground records into 300 clusters: 79 records
-merged, 15 campgrounds confirmed by all three sources, 36 pairs in the review queue, 5 group or
-horse areas linked to a parent campground. Precision and recall are not reported yet: they
-will be computed on a gold set of 200 pairs once a person has verified the labels.
+## Limitations and next steps
 
-Golden records (`poi resolve`): 300 entities with stable ids, each field chosen by
-configurable source trust and corroboration, with every alternative and its provenance kept.
-60 entities are confirmed by more than one source (15 by all three); their mean quality score
-is 0.75 for two sources and 0.99 for three, against 0.58 for single-source entities. The
-[quality report](reports/quality.md) shows where data is missing and which source would close
-the gap: season dates are known for every NPS-backed campground and for none of the 69 Forest
-Service or 215 OSM-only ones.
-
-Crawling official websites (`poi crawl`): 121 candidate URLs → 78 crawlable seeds after
-screening (30 on API domains, 10 booking engines, 2 aggregators, 1 unofficial site skipped).
-15 sites crawled successfully (77 pages, about 5 per site), 2 seeds are dead, and 61 seeds on
-fs.usda.gov were not crawled: the host answers an identified crawler with a block page, so the
-crawler stopped there after one request instead of working around it. No page needed a
-headless browser. Fetched pages average 144 KB of HTML but only about 5,600 characters of
-visible text, which is the first hint of how much cheaper extraction gets after reduction.
-
-Reduction (`poi reduce`, no LLM involved): crawled pages average about 36,400 tokens of raw
-HTML, 2,100 as cleaned HTML and 950 as Markdown, i.e. 2.6% of the raw size, while keeping 97%
-of distinct prices and phone numbers and 96% of month mentions (token counts estimated as
-bytes / 4 until calibrated against the API). That gives 15 website bundles (about 4,300 tokens
-each) and 85 RIDB description documents (about 760 tokens each) as LLM inputs; details in
-[reports/tokens.md](reports/tokens.md).
-
-## Serving
-
-```bash
-make index      # versioned Elasticsearch index, atomic alias swap
-make serve      # API on http://127.0.0.1:8000, OpenAPI docs at /docs
-
-curl 'localhost:8000/campgrounds/search?q=tuolume%20medows'                 # typo-tolerant
-curl 'localhost:8000/campgrounds/search?lat=37.74&lon=-119.57&radius_km=30&open_in_month=1'
-curl 'localhost:8000/campgrounds/bbox?min_lat=37.70&min_lon=-119.62&max_lat=37.76&max_lon=-119.53'
-curl -X POST localhost:8000/campgrounds/along-route -H 'content-type: application/json' \
-  -d '{"route": [[-119.86, 37.70], [-119.59, 37.74], [-119.35, 37.87]], "buffer_km": 3}'
-curl 'localhost:8000/campgrounds/<id>'   # golden record + provenance; 301 if merged
-```
+- Run the LLM stage live (dry run first) and report accuracy, cost per page and per 1,000 POIs,
+  cache-hit and escalation rates, the representation ablation, and how much season and amenity
+  coverage each input adds.
+- Verify the entity-resolution gold labels and report precision and recall; tune thresholds.
+- One region; Forest Service websites are blocked for identified crawlers, so their facts come
+  only from RIDB descriptions.
+- Token counts in the reduction report are estimates until calibrated with `count_tokens`.
+- Real-page extraction gold labels are not committed (third-party content); the committed gold
+  set is synthetic.
 
 ## Data sources and attribution
+
 - Map data © OpenStreetMap contributors, available under the Open Database License (ODbL).
+  The demo snapshot contains OSM-derived records and is made available under the ODbL.
 - Recreation Information Database (RIDB), Recreation.gov.
 - U.S. National Park Service API.
-- State and province boundaries: Natural Earth (public domain), simplified subset in `data/reference/`.
+- State and province boundaries: Natural Earth (public domain).
+- No commercial aggregators or review sites are crawled.
+
+## How I built this
+
+I used Claude Code as a pair programmer for planning, implementation and review. I owned the
+design decisions and the verification: what to measure, what counts as a correct match, which
+trade-offs to make, and checking the numbers against the data.

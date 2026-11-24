@@ -4,7 +4,11 @@
 - `make setup` (deps + git hooks), `make up` / `make down` (Postgres+PostGIS, Elasticsearch), `make migrate`
 - `make lint` (ruff + format check + mypy strict), `make test` (integration tests skip if Postgres is down)
 - `uv run poi --help` lists the pipeline stages; `uv run poi doctor` checks config without printing secrets
-- Pipeline order: `ingest → normalize → match → resolve → report`; each stage is idempotent
+- Pipeline order: `ingest → normalize → match → resolve`, then `crawl → reduce → extract` and
+  `normalize → match → resolve` again, then `index`, `serve`, `report`; each stage is idempotent
+- `make demo`: keyless demo on the committed snapshot (own database `poi_demo`, index prefix)
+- LLM: never run `poi extract` without `--dry-run` first and the user's approval of the estimate;
+  always pass `--max-cost-usd`. Tests use fixtures and recordings only.
 - Manual fixes go in `data/overrides.yaml` (via `poi review queue`), never as direct DB edits
 
 ## Conventions

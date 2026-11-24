@@ -191,6 +191,51 @@ reported separately.
 Token counts here are estimates (UTF-8 bytes / 4); the extraction stage calibrates them with
 the API's free `count_tokens` endpoint. Numbers: [reports/tokens.md](../reports/tokens.md).
 
+## LLM extraction: the cost ladder
+
+Status: implemented and tested with fixtures through the real Anthropic SDK (a mock
+transport, so the tests check exactly what would be sent); not run live yet.
+
+Every document goes down a ladder; each step is cheaper than the next, and every extracted
+value records which step produced it:
+
+0. **Skip.** Same content hash and prompt version as an existing extraction: reuse it.
+1. **Deterministic.** JSON-LD/microdata, `tel:`/`mailto:` links and `<address>` are found
+   without a model; they fill gaps (a single unambiguous phone) and cross-check the model.
+2. **Reduce.** Markdown with salvaged facts, boilerplate removed, one capped bundle per site.
+3. **Cheap model.** Claude Haiku with structured outputs (`output_config.format`, schema with
+   `additionalProperties: false`), thinking off, the static instructions as a cached prefix.
+4. **Escalate once** to Claude Sonnet when the output is invalid, refused, truncated, or more
+   than a quarter of its checkable values are ungrounded.
+5. **Human review** when the strong model's answer is still not good enough.
+
+Guardrails: the document is untrusted data inside `<document>` tags (and cannot close them);
+the instructions say never to follow text found in it, and the output is schema-validated and
+never executed. **Grounding** is deterministic and free: phones, emails, prices, site counts and
+lengths must appear in the input or are dropped (counted as hallucinations); evidence quotes
+must match the text; fields without grounded evidence are kept as unsupported with low
+confidence. Confidence is computed from these checks and from agreement with the deterministic
+facts, never asked of the model.
+
+Cost control: every call goes to the `llm_calls` ledger (input, output, cache read/write and
+thinking tokens, list-price cost, latency, outcome). `poi extract --dry-run` counts tokens with
+the provider's free `count_tokens` endpoint and prices four variants (sync without and with
+prompt caching, batch with caching, escalation reserve) before anything is spent;
+`--max-cost-usd` stops a run before the projected spend passes the cap; `--batch` sends the
+cheap step through Message Batches (half price, 1-hour cache TTL). Responses are recorded by
+`hash(provider, model, instructions, input)`, so re-runs, tests and evaluations cost nothing.
+Output is kept lean on purpose (unknown fields omitted, short enums, evidence quotes of at most
+15 words for key fields): output tokens cost five times more than input tokens on Haiku.
+
+The provider layer is a small protocol with one adapter per provider; an optional Gemini
+adapter exists, but Claude is the configured provider.
+
+Evaluation: 18 synthetic gold pages, one per extraction edge case, with expected values
+correct by construction and fields that must stay empty (hallucination and privacy bait).
+`poi eval extraction` scores per-field accuracy, page-kind accuracy, recall, empty-field rate
+and bait violations; `poi eval ablation` sends the same pages as raw HTML, cleaned HTML,
+Markdown and plain text to measure tokens against accuracy.
+
 ## Serving
 
 Postgres + PostGIS is the system of record; Elasticsearch is a derived read model. `poi index`
@@ -204,6 +249,26 @@ available (the campground is open in season anyway); "partial" does not, so a fi
 over-promises. Along-route queries stay in PostGIS (`ST_DWithin` against the route line,
 ordered by `ST_LineLocatePoint`), which is the road-trip question: what can I reach from the
 road, in driving order. A merged id answers 301 with the surviving id, a retired one 410.
+
+## What I would do at 1M POIs
+
+- **LLM-induced selectors for templated sites.** Chains, state park systems and booking
+  platforms render thousands of pages from one template. Ask the model once per template for
+  CSS selectors (validated against a few pages), extract the rest deterministically, and
+  re-learn the selectors when validation starts failing. The LLM cost then scales with the
+  number of templates, not pages.
+- **Embeddings for candidate generation and as a matching feature**, for the cases names and
+  coordinates miss: renamed campgrounds and records without coordinates. Measured with an
+  ablation against the current blocking recall, not assumed.
+- **Active learning for the review queue.** Send reviewers the pairs whose label would move the
+  thresholds most (near the decision boundary, in under-represented strata), and refit the
+  weights from accumulated labels (Fellegi–Sunter m/u by EM, or a small classifier on the same
+  features).
+- **Re-crawl by staleness × popularity.** Conditional requests already make unchanged pages
+  cheap; scheduling decides which pages to ask about at all: popular campgrounds with
+  seasonal facts first, before the season starts.
+- **Batch everything that is not urgent**, keep the instructions as a cached prefix, and watch
+  the ledger: cost per page, cache-hit share and escalation rate as alarms (see aws.md).
 
 ## Edge cases found in real data
 
