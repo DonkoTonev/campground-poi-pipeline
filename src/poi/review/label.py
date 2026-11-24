@@ -16,9 +16,21 @@ from sqlalchemy import Connection, text
 from poi.review.gold import GoldPair, load, mark_verified, save
 
 FIELDS = (
-    "name", "alt_names", "category", "is_campground", "operator_name", "phone", "website",
-    "reservation_url", "ids", "lat", "lon", "precision_m", "num_sites", "months_open",
-)  # fmt: skip
+    "name",
+    "alt_names",
+    "category",
+    "is_campground",
+    "operator_name",
+    "phone",
+    "website",
+    "reservation_url",
+    "ids",
+    "lat",
+    "lon",
+    "precision_m",
+    "num_sites",
+    "months_open",
+)
 CHOICES = {"m": "match", "n": "non_match", "u": "unsure"}
 
 
@@ -85,11 +97,18 @@ def render_pair(
         console.print(f"map: {link}")
 
 
-def render(console: Console, pair: GoldPair, a: dict[str, Any], b: dict[str, Any],
-           index: int, total: int, show_suggestion: bool) -> None:  # fmt: skip
+def render(
+    console: Console,
+    pair: GoldPair,
+    a: dict[str, Any],
+    b: dict[str, Any],
+    index: int,
+    total: int,
+    show_suggestion: bool,
+) -> None:
     render_pair(
         console,
-        f"Pair {index}/{total}  ·  strata: {', '.join(pair.strata)}",
+        f"Pair {index}/{total}",  # no strata: they include the matcher's score bin
         f"{pair.a['source']}:{pair.a['source_id']}",
         f"{pair.b['source']}:{pair.b['source_id']}",
         a,
@@ -101,12 +120,20 @@ def render(console: Console, pair: GoldPair, a: dict[str, Any], b: dict[str, Any
         )
 
 
-def run(conn: Connection, show_suggestion: bool = False, relabel: bool = False) -> dict[str, int]:
+def run(
+    conn: Connection, show_suggestion: bool = False, relabel: bool = False, everything: bool = False
+) -> dict[str, int]:
+    """Label the human-verification sample (or every pair with `everything`). The drafted
+    label, its rationale and the matcher's suggestion stay hidden, so the person's answer is
+    independent and agreement means something."""
     console = Console()
     pairs = load()
-    todo = [p for p in pairs if relabel or not p.verified]
-    console.print(f"{len(todo)} pairs to review ({len(pairs)} in gold set). "
-                  r"\[m]atch  \[n]on-match  \[u]nsure  \[s]kip  \[q]uit")  # fmt: skip
+    scope = pairs if everything else [p for p in pairs if p.human_sample]
+    todo = [p for p in scope if relabel or not p.verified]
+    console.print(
+        f"{len(todo)} pairs to review ({len(scope)} in scope, {len(pairs)} in gold set). "
+        r"\[m]atch  \[n]on-match  \[u]nsure  \[s]kip  \[q]uit"
+    )
     done = 0
     for i, pair in enumerate(todo, start=1):
         a, b = record_row(conn, pair.a), record_row(conn, pair.b)
@@ -125,6 +152,6 @@ def run(conn: Connection, show_suggestion: bool = False, relabel: bool = False) 
         mark_verified(pair, CHOICES[answer], note)
         save(pairs)  # after every answer: quitting never loses work
         done += 1
-    verified = sum(p.verified for p in pairs)
-    console.print(f"labelled {done} this session; {verified}/{len(pairs)} verified")
-    return {"labelled": done, "verified": verified, "total": len(pairs)}
+    verified = sum(p.verified for p in scope)
+    console.print(f"labelled {done} this session; {verified}/{len(scope)} verified")
+    return {"labelled": done, "verified": verified, "total": len(scope)}

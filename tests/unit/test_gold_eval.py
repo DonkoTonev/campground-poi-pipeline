@@ -17,18 +17,64 @@ def _pair(a: str, b: str, **kw: object) -> gold.GoldPair:
     )
 
 
-def test_merge_keeps_verified_labels_and_adds_only_new_pairs(tmp_path: Path) -> None:
+def test_merge_keeps_labels_and_adds_only_new_pairs(tmp_path: Path) -> None:
     labelled = _pair("1", "2")
+    gold.mark_drafted(labelled, "non_match", "Upper vs Lower, 80 m apart", "claude")
     gold.mark_verified(labelled, "non_match", "different loops")
     merged = gold.merge([labelled], [_pair("1", "2"), _pair("3", "4")])
     assert len(merged) == 2
-    assert merged[0].verified and merged[0].label == "non_match"
-    path = tmp_path / "gold.jsonl"
+    assert merged[0].label == "non_match" and merged[0].human_label == "non_match"
     merged.append(_pair("5", "6", suggestion_score=None))  # not a blocking candidate
+    path = tmp_path / "gold.jsonl"
     gold.save(merged, path)
     again = gold.load(path)
     assert [p.key for p in again] == [p.key for p in merged]
-    assert again[0].note == "different loops" and not again[1].verified
+    assert again[0].labeled_by == "claude" and again[0].rationale == "Upper vs Lower, 80 m apart"
+    assert again[0].human_note == "different loops" and again[0].verified
+    assert not again[1].verified
+
+
+def test_human_label_never_overwrites_the_drafted_label() -> None:
+    pair = _pair("1", "2")
+    gold.mark_drafted(pair, "match", "same recreation.gov id", "claude")
+    gold.mark_verified(pair, "non_match", None)
+    assert pair.label == "match" and pair.human_label == "non_match"
+
+
+def test_human_sample_is_reproducible_and_exact_size() -> None:
+    pairs = [_pair(str(i), str(i + 1000)) for i in range(200)]
+    first = {p.key for p in gold.draw_human_sample(pairs, 50, seed=7)}
+    second = {p.key for p in gold.draw_human_sample(pairs, 50, seed=7)}
+    assert first == second and len(first) == 50
+    assert sum(p.human_sample for p in pairs) == 50
+
+
+def test_agreement_statement(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from poi.eval import er
+
+    pairs = [_pair(str(i), str(i + 100)) for i in range(4)]
+    for p, (drafted, human) in zip(
+        pairs,
+        [
+            ("match", "match"),
+            ("non_match", "non_match"),
+            ("match", "non_match"),
+            ("non_match", None),
+        ],
+        strict=True,
+    ):
+        gold.mark_drafted(p, drafted, "r", "claude")
+        p.human_sample = True
+        if human:
+            gold.mark_verified(p, human)
+    monkeypatch.setattr(er, "load", lambda: pairs)
+    agr = er.agreement()
+    assert (agr["human_verified"], agr["agree"], agr["agreement"]) == (3, 2, 0.667)
+    assert er.label_statement(agr) == (
+        "Claude-drafted labels (4 pairs, drafted blind to the matcher's score and decision), "
+        "4 human-verified, agreement 67% (2/3)."
+    )
+    assert len(agr["disagreements"]) == 1
 
 
 def test_pair_key_is_order_independent() -> None:

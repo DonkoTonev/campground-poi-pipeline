@@ -35,10 +35,18 @@ class GoldPair:
     strata: list[str]
     suggested: str | None = None
     suggestion_score: float | None = None  # None: the pair was not a blocking candidate
-    verified: bool = False
+    # The gold label: drafted by Claude in a blind pass (no matcher score or decision shown).
     label: str | None = None  # match | non_match | unsure
+    labeled_by: str | None = None  # "claude"
+    rationale: str | None = None  # one line: shared ids, distance, discriminator words
     labeled_at: str | None = None
     note: str | None = None
+    # Human verification of a random sample, done without seeing label or rationale.
+    human_sample: bool = False
+    human_label: str | None = None
+    human_labeled_at: str | None = None
+    human_note: str | None = None
+    verified: bool = False  # True once a person labelled the pair
 
     @property
     def key(self) -> tuple[str, str, str, str]:
@@ -164,5 +172,21 @@ def merge(existing: list[GoldPair], new: list[GoldPair]) -> list[GoldPair]:
 
 
 def mark_verified(pair: GoldPair, label: str, note: str | None = None) -> None:
-    pair.label, pair.verified, pair.note = label, True, note
+    """A person's label. Stored next to (never over) the drafted label, so agreement can be
+    measured."""
+    pair.human_label, pair.human_note, pair.verified = label, note, True
+    pair.human_labeled_at = datetime.now(UTC).isoformat(timespec="seconds")
+
+
+def mark_drafted(pair: GoldPair, label: str, rationale: str, by: str) -> None:
+    pair.label, pair.rationale, pair.labeled_by = label, rationale, by
     pair.labeled_at = datetime.now(UTC).isoformat(timespec="seconds")
+
+
+def draw_human_sample(pairs: list[GoldPair], n: int, seed: int) -> list[GoldPair]:
+    """A uniform random sample (fixed seed, reproducible) for human verification."""
+    rng = random.Random(seed)  # noqa: S311 - reproducible sampling, not security
+    chosen = rng.sample(pairs, min(n, len(pairs)))
+    for pair in pairs:
+        pair.human_sample = pair in chosen
+    return chosen

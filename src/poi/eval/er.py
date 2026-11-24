@@ -59,11 +59,16 @@ class Metrics:
 
     def as_dict(self) -> dict[str, Any]:
         return {
-            "tp": self.tp, "fp": self.fp, "fn": self.fn, "tn": self.tn,
-            "precision": self.precision, "recall": self.recall, "f1": self.f1,
+            "tp": self.tp,
+            "fp": self.fp,
+            "fn": self.fn,
+            "tn": self.tn,
+            "precision": self.precision,
+            "recall": self.recall,
+            "f1": self.f1,
             "precision_ci95": wilson(self.tp, self.tp + self.fp),
             "recall_ci95": wilson(self.tp, self.tp + self.fn),
-        }  # fmt: skip
+        }
 
 
 def metrics(truth: list[bool], predicted: list[bool]) -> Metrics:
@@ -90,8 +95,9 @@ def _ids(conn: Connection) -> dict[tuple[str, str], int]:
     return {(r.source, r.source_id): r.id for r in rows}
 
 
-def judge(conn: Connection, region: str) -> tuple[list[Judged], int]:
-    """Join verified gold pairs with the latest clustering and pair scores."""
+def judge(conn: Connection, region: str, truth: str = "drafted") -> tuple[list[Judged], int]:
+    """Join gold pairs with the latest clustering and pair scores. `truth` picks the label:
+    the drafted (Claude, blind) label for every pair, or the human label where it exists."""
     ids = _ids(conn)
     cluster_of: dict[int, int] = dict(
         conn.execute(
@@ -109,7 +115,8 @@ def judge(conn: Connection, region: str) -> tuple[list[Judged], int]:
     judged: list[Judged] = []
     missing = 0
     for pair in load():
-        if not pair.verified or pair.label not in ("match", "non_match"):
+        label = pair.label if truth == "drafted" else pair.human_label
+        if label not in ("match", "non_match"):
             continue
         a = ids.get((pair.a["source"], pair.a["source_id"]))
         b = ids.get((pair.b["source"], pair.b["source_id"]))
@@ -118,9 +125,7 @@ def judge(conn: Connection, region: str) -> tuple[list[Judged], int]:
             continue
         score, contributions = scores.get((min(a, b), max(a, b)), (None, {}))
         judged.append(
-            Judged(
-                pair, pair.label == "match", cluster_of[a] == cluster_of[b], score, contributions
-            )
+            Judged(pair, label == "match", cluster_of[a] == cluster_of[b], score, contributions)
         )
     return judged, missing
 
@@ -131,6 +136,46 @@ def _fmt(x: float | None) -> str:
 
 def _ci(ci: tuple[float, float] | None) -> str:
     return "n/a" if ci is None else f"[{ci[0]:.2f}, {ci[1]:.2f}]"
+
+
+def agreement() -> dict[str, Any]:
+    """Human vs drafted labels on the verification sample."""
+    pairs = load()
+    sample = [p for p in pairs if p.human_sample]
+    both = [p for p in sample if p.human_label and p.label]
+    agree = [p for p in both if p.human_label == p.label]
+    return {
+        "drafted": sum(p.label is not None for p in pairs),
+        "drafted_by": sorted({p.labeled_by for p in pairs if p.labeled_by}),
+        "sample_size": len(sample),
+        "human_verified": len(both),
+        "agree": len(agree),
+        "agreement": round(len(agree) / len(both), 3) if both else None,
+        "disagreements": [
+            {
+                "a": p.a["name"],
+                "b": p.b["name"],
+                "drafted": p.label,
+                "human": p.human_label,
+                "rationale": p.rationale,
+                "human_note": p.human_note,
+            }
+            for p in both
+            if p.human_label != p.label
+        ],
+    }
+
+
+def label_statement(agr: dict[str, Any]) -> str:
+    """The one sentence the README and the report must carry about where labels come from."""
+    if agr["agreement"] is None:
+        status = f"agreement pending ({agr['human_verified']}/{agr['sample_size']} verified so far)"
+    else:
+        status = f"agreement {agr['agreement']:.0%} ({agr['agree']}/{agr['human_verified']})"
+    return (
+        f"Claude-drafted labels ({agr['drafted']} pairs, drafted blind to the matcher's score "
+        f"and decision), {agr['sample_size']} human-verified, {status}."
+    )
 
 
 def evaluate(conn: Connection, region: str) -> dict[str, Any]:
@@ -145,15 +190,21 @@ def evaluate(conn: Connection, region: str) -> dict[str, Any]:
         "false_merges": [j for j in judged if j.same_cluster and not j.truth],
         "missed_matches": [j for j in judged if j.truth and not j.same_cluster],
     }
+    human, _ = judge(conn, region, truth="human")
+    human_clustering = metrics([j.truth for j in human], [j.same_cluster for j in human])
+    agr = agreement()
     result = {
-        "n_verified": len(judged),
+        "labels": label_statement(agr),
+        "n_labelled": len(judged),
         "n_missing_records": missing,
         "positives": sum(truth),
         "clustering": clustering.as_dict(),
+        "clustering_vs_human_sample": human_clustering.as_dict() | {"n": len(human)},
+        "agreement": {k: v for k, v in agr.items() if k != "disagreements"},
         "threshold_sweep": {str(t): m.as_dict() for t, m in sweep.items()},
         "errors": {k: len(v) for k, v in errors.items()},
     }
-    _write_report(region, result, clustering, sweep, errors)
+    _write_report(region, result, clustering, sweep, errors, agr, human_clustering, len(human))
     return result
 
 
@@ -176,22 +227,45 @@ def _write_report(
     clustering: Metrics,
     sweep: dict[float, Metrics],
     errors: dict[str, list[Judged]],
+    agr: dict[str, Any],
+    human: Metrics,
+    n_human: int,
 ) -> None:
     lines = [
         "# Entity resolution evaluation",
         "",
         f"Region `{region}`, {date.today().isoformat()}, matching config `{_config_hash()}`.",
-        f"Verified gold pairs: **{result['n_verified']}** ({result['positives']} matches). "
-        f"Pairs whose records are missing or no longer campgrounds: {result['n_missing_records']}.",
         "",
-        "Metrics use only labels a person verified (`poi review label`); suggested labels are",
-        "never counted. Intervals are Wilson 95%.",
+        f"**Labels:** {result['labels']}",
+        "",
+        f"Gold pairs with a match / non-match label: **{result['n_labelled']}** "
+        f"({result['positives']} matches); pairs whose records are missing or no longer "
+        f"campgrounds: {result['n_missing_records']}. The drafted labels were written from the "
+        "two records alone, each with a one-line rationale; the human sample was drawn at "
+        "random and labelled without seeing them. Intervals are Wilson 95%.",
         "",
         "## Clustering (what the app shows)",
         "",
         "| precision | 95% CI | recall | 95% CI | F1 | TP | FP | FN | TN |",
         "|---|---|---|---|---|---|---|---|---|",
         _clustering_row(clustering),
+        "",
+        "## Against the human-verified sample",
+        "",
+        f"{n_human} pairs with a human match / non-match label.",
+        "",
+        "| precision | 95% CI | recall | 95% CI | F1 | TP | FP | FN | TN |",
+        "|---|---|---|---|---|---|---|---|---|",
+        _clustering_row(human),
+        "",
+        "Disagreements between the drafted and the human label:",
+        "",
+        *(
+            f"- {d['a']} vs {d['b']}: drafted {d['drafted']}, human {d['human']} "
+            f"(rationale: {d['rationale']}; note: {d['human_note'] or '-'})"
+            for d in agr["disagreements"]
+        ),
+        *(["- none so far"] if not agr["disagreements"] else []),
         "",
         "## Pair score threshold sweep (before clustering constraints)",
         "",
@@ -203,12 +277,16 @@ def _write_report(
         ),
         "",
     ]
-    for title, items in (("False merges", errors["false_merges"]),
-                         ("Missed matches", errors["missed_matches"])):  # fmt: skip
+    for title, items in (
+        ("False merges", errors["false_merges"]),
+        ("Missed matches", errors["missed_matches"]),
+    ):
         lines += [f"## {title} ({len(items)})", ""]
         for j in items[:15]:
-            contrib = ", ".join(f"{k} {v:+g}" for k, v in sorted(
-                j.contributions.items(), key=lambda kv: -abs(kv[1])))  # fmt: skip
+            contrib = ", ".join(
+                f"{k} {v:+g}"
+                for k, v in sorted(j.contributions.items(), key=lambda kv: -abs(kv[1]))
+            )
             score = "not a candidate" if j.score is None else f"score {j.score:g}"
             lines.append(
                 f"- {j.pair.a['source']}:{j.pair.a['name']} vs {j.pair.b['source']}:"
@@ -222,5 +300,17 @@ def _write_report(
 
 def summary_json(result: dict[str, Any]) -> str:
     return json.dumps(
-        {k: result[k] for k in ("n_verified", "positives", "clustering", "errors")}, indent=2
+        {
+            k: result[k]
+            for k in (
+                "labels",
+                "n_labelled",
+                "positives",
+                "clustering",
+                "clustering_vs_human_sample",
+                "agreement",
+                "errors",
+            )
+        },
+        indent=2,
     )
