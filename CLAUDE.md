@@ -15,6 +15,8 @@
 - Conventional commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`), small and focused.
 
 ## Data rules
+- The repository is public: every push is a publication. `make publishable` (also a pre-push hook and a CI
+  step) runs gitleaks over the full history plus `scripts/check_publishable.py`. Never bypass it (`--no-verify`).
 - Never commit `.env`, raw or reduced third-party page content, or personal data.
 - Demo data: phones → fictional 555-01xx numbers, emails → example.com.
 - Crawling: obey robots.txt, honest User-Agent from `CONTACT_URL`, never bypass captchas/logins.
