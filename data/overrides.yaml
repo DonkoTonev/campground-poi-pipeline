@@ -1,0 +1,10 @@
+# Manual decisions, applied on every run. Written by `poi review` or by hand.
+# Records are referenced as "source:source_id" (stable across database rebuilds).
+#
+# match:  {a: "osm:way/1", b: "ridb:232447", decision: match | non_match,
+#          reason: "...", date: "YYYY-MM-DD"}
+# fields: {record: "nps:<id>", field: phone, value: "+12095550100",
+#          reason: "...", date: "YYYY-MM-DD"}
+#         (the override applies to the entity that contains the record)
+match: []
+fields: []
