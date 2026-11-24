@@ -1,7 +1,7 @@
 # Targets are added as their milestone lands; see docs/PLAN.md.
 UV := uv run
 
-.PHONY: setup up down migrate doctor ingest normalize match resolve crawl reduce report eval fixtures test test-unit lint fmt typecheck
+.PHONY: setup up down migrate doctor ingest normalize match resolve crawl reduce index serve report eval fixtures test test-unit lint fmt typecheck
 
 setup:  ## install deps + git hooks
 	uv sync
@@ -36,6 +36,12 @@ crawl:  ## responsible crawl of official websites seeded from entities
 
 reduce:  ## pages and RIDB descriptions -> LLM input documents with token metrics
 	$(UV) poi reduce
+
+index:  ## new versioned search index, atomic alias swap
+	$(UV) poi index
+
+serve:  ## API on http://127.0.0.1:8000 (docs at /docs)
+	$(UV) poi serve
 
 report:  ## Markdown reports in reports/
 	$(UV) poi report quality

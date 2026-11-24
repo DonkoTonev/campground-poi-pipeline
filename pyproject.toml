@@ -8,7 +8,9 @@ dependencies = [
     "alembic>=1.20.1",
     "anthropic>=2.13.0",
     "boto3>=1.44.10",
+    "elasticsearch>=9,<10",
     "extruct>=0.18.0",
+    "fastapi>=0.165.0",
     "google-genai>=1.60",
     "httpx>=0.28.1",
     "markdownify>=1.2.4",
@@ -28,6 +30,7 @@ dependencies = [
     "tldextract>=5.4.0",
     "trafilatura>=2.4.0",
     "typer>=0.29.2",
+    "uvicorn>=0.54.0",
 ]
 
 [project.scripts]

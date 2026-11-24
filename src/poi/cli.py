@@ -308,5 +308,30 @@ def report_cost(region: Annotated[str | None, typer.Option(help="Region name.")]
         typer.echo(reports.write("cost.md", cost_report.cost_report(conn, reg.name)))
 
 
+@app.command()
+def index(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
+    """Build a new versioned search index of active entities and swap the alias to it."""
+    from elasticsearch import Elasticsearch
+
+    from poi.serve.index import build
+
+    settings = get_settings()
+    stats = build(
+        get_engine(), Elasticsearch(settings.elasticsearch_url), load_region(region, settings)
+    )
+    typer.echo(json.dumps(stats, indent=2))
+
+
+@app.command()
+def serve(
+    host: Annotated[str, typer.Option(help="Bind address.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="Port.")] = 8000,
+) -> None:
+    """Run the API (OpenAPI docs at /docs)."""
+    import uvicorn
+
+    uvicorn.run("poi.serve.api:app", host=host, port=port)
+
+
 if __name__ == "__main__":
     app()

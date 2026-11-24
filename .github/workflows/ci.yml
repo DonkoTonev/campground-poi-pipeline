@@ -19,8 +19,19 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U poi -d poi"
           --health-interval 3s --health-timeout 3s --health-retries 20
+      es:
+        image: docker.elastic.co/elasticsearch/elasticsearch:9.5.5
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: -Xms512m -Xmx512m
+        ports: ["9200:9200"]
+        options: >-
+          --health-cmd "curl -fs http://localhost:9200/_cluster/health || exit 1"
+          --health-interval 5s --health-timeout 5s --health-retries 30
     env:
       DATABASE_URL: postgresql+psycopg://poi:poi@localhost:5432/poi
+      ELASTICSEARCH_URL: http://localhost:9200
     steps:
       - uses: actions/checkout@v7
         with:
