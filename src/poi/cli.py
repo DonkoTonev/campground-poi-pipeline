@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Annotated
 
 import typer
@@ -9,6 +10,7 @@ import typer
 from poi.db import check_extensions, get_engine
 from poi.ingest import ingest_source
 from poi.log import configure_logging, get_logger
+from poi.normalize.stage import normalize_region
 from poi.settings import get_settings, load_region
 from poi.sources import ALL_SOURCES
 from poi.storage import make_store
@@ -62,3 +64,15 @@ def ingest(
     for name in names:
         stats = ingest_source(get_engine(), store, settings, reg, name, refresh)
         typer.echo(f"{name}: {stats}")
+
+
+@app.command()
+def normalize(
+    region: Annotated[
+        str | None, typer.Option(help="Region name from config/regions.yaml.")
+    ] = None,
+) -> None:
+    """Map source_records into canonical poi_records and write quality_flags."""
+    settings = get_settings()
+    stats = normalize_region(get_engine(), load_region(region, settings))
+    typer.echo(json.dumps(stats, indent=2))

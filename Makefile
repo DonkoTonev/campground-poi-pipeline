@@ -1,7 +1,7 @@
 # Targets are added as their milestone lands; see docs/PLAN.md.
 UV := uv run
 
-.PHONY: setup up down migrate doctor ingest fixtures test test-unit lint fmt typecheck
+.PHONY: setup up down migrate doctor ingest normalize fixtures test test-unit lint fmt typecheck
 
 setup:  ## install deps + git hooks
 	uv sync
@@ -21,6 +21,9 @@ doctor:
 
 ingest:  ## fetch structured sources (raw store first) into source_records
 	$(UV) poi ingest
+
+normalize:  ## source_records -> canonical poi_records + quality_flags
+	$(UV) poi normalize
 
 fixtures:  ## re-cut scrubbed test fixtures from the raw store
 	$(UV) python scripts/record_fixtures.py
