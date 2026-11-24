@@ -51,6 +51,19 @@ category:
   same: 0.5
   incompatible: -2.0  # horse or group vs anything else
 
+embeddings:              # S1, off by default: `poi match --embeddings`, `poi eval er-embeddings`
+  enabled: false
+  model: BAAI/bge-small-en-v1.5   # local ONNX model via fastembed (uv sync --extra embeddings)
+  top_k: 5                # candidate source: each record's 5 most similar names ...
+  min_similarity: 0.85    # ... at or above this cosine similarity ...
+  max_distance_m: 20000   # ... within 20 km (or without coordinates)
+  use_as_feature: true    # also add a contribution for every candidate pair
+  feature:                # cosine similarity lower bound -> contribution. Set from the
+    - [0.95, 1.0]         # similarity distribution of all candidate pairs before looking at
+    - [0.85, 0.5]         # labels, and kept small: it overlaps with the name feature, and
+    - [0.70, 0.0]         # "Upper" vs "Lower Pines" still scores 0.82
+    - [0.0, -0.5]
+
 cluster:
   max_diameter_m: 3000
   strong_non_match: -5.0   # pairs scored at or below this are treated as cannot-link

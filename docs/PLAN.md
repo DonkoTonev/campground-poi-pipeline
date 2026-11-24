@@ -22,6 +22,7 @@ S3 MCP server, S4 PDF brochures, S5 induced selectors.
 
 ## Stretch checklist
 - [x] S3: MCP server (`poi mcp`, stdio) with `search_campgrounds`, `get_campground`, `along_route` over the API's query layer; integration tests through an in-process MCP client
+- [x] S1: local name embeddings (fastembed, optional extra) as candidate source and feature behind `--embeddings`; `poi eval er-embeddings` ablation; result: no gain, left off
 
 ## M0 checklist
 - [x] `.gitignore` before first commit

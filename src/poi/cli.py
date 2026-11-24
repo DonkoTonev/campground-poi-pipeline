@@ -102,10 +102,17 @@ def match(
     region: Annotated[
         str | None, typer.Option(help="Region name from config/regions.yaml.")
     ] = None,
+    embeddings: Annotated[
+        bool | None,
+        typer.Option(
+            "--embeddings/--no-embeddings",
+            help="Name embeddings as candidate source and feature (default: matching.yaml).",
+        ),
+    ] = None,
 ) -> None:
     """Entity resolution: block, score, cluster and relate campground records."""
     settings = get_settings()
-    stats = match_region(get_engine(), load_region(region, settings))
+    stats = match_region(get_engine(), load_region(region, settings), use_embeddings=embeddings)
     typer.echo(json.dumps(stats, indent=2))
 
 
@@ -153,6 +160,17 @@ def eval_er(region: Annotated[str | None, typer.Option(help="Region name.")] = N
     with get_engine().connect() as conn:
         result = er_eval.evaluate(conn, reg.name)
     typer.echo(er_eval.summary_json(result))
+
+
+@eval_app.command("er-embeddings")
+def eval_er_embeddings(
+    region: Annotated[str | None, typer.Option(help="Region name.")] = None,
+) -> None:
+    """Ablation: ER with and without name embeddings; writes reports/er_embeddings.md."""
+    from poi.eval import er_embeddings
+
+    result = er_embeddings.run(get_engine(), load_region(region, get_settings()))
+    typer.echo(json.dumps(result, indent=2))
 
 
 @app.command()

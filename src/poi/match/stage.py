@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import Any
 
 from sqlalchemy import Connection, Engine, text
 
 from poi.log import get_logger
-from poi.match.blocking import candidate_rows
+from poi.match import embeddings
+from poi.match.blocking import candidate_rows, pair_geometry
 from poi.match.cluster import cluster, hierarchy
 from poi.match.scoring import (
     Candidate,
@@ -65,13 +66,66 @@ def load_records(conn: Connection, region: str) -> dict[int, MatchRecord]:
     }
 
 
-def score_candidates(
+@dataclass
+class CandidateRow:
+    a_id: int
+    b_id: int
+    blocked_by: tuple[str, ...]
+    distance_m: float | None
+    a_contains_b: bool
+    b_contains_a: bool
+
+
+def _row(r: Any, blocked_by: tuple[str, ...]) -> CandidateRow:
+    return CandidateRow(r.a_id, r.b_id, blocked_by, r.distance_m, r.a_contains_b, r.b_contains_a)
+
+
+def add_embedding_candidates(
     conn: Connection,
-    region: str,
+    records: dict[int, MatchRecord],
+    rows: list[CandidateRow],
+    ecfg: dict[str, Any],
+    embedder: embeddings.Embedder,
+    use_as_feature: bool,
+) -> tuple[list[CandidateRow], dict[tuple[int, int], float], dict[str, Any]]:
+    """Union the embedding neighbours into the blocking candidates; similarities per pair
+    when the feature is on."""
+    vecs = embeddings.vectors(records.values(), embedder)
+    proposed = embeddings.neighbour_pairs(vecs, ecfg["top_k"], ecfg["min_similarity"])
+    by_key = {(r.a_id, r.b_id): r for r in rows}
+    known = [k for k in proposed if k in by_key]
+    for key in known:
+        by_key[key].blocked_by = (*by_key[key].blocked_by, "embedding")
+    too_far = 0
+    for g in pair_geometry(conn, [k for k in proposed if k not in by_key]):
+        if g.distance_m is not None and g.distance_m > ecfg["max_distance_m"]:
+            too_far += 1
+            continue
+        by_key[(g.a_id, g.b_id)] = _row(g, ("embedding",))
+    sims: dict[tuple[int, int], float] = {}
+    if use_as_feature:
+        for key in by_key:
+            if (sim := embeddings.similarity(vecs, *key)) is not None:
+                sims[key] = sim
+    stats = {
+        **embeddings.settings_summary(ecfg, embedder) | {"feature": use_as_feature},
+        "embedded_records": len(vecs),
+        "proposed_pairs": len(proposed),
+        "already_candidates": len(known),
+        "beyond_max_distance": too_far,
+        "added_pairs": len(by_key) - len(rows),
+    }
+    return list(by_key.values()), sims, stats
+
+
+def score_candidates(
+    rows: list[CandidateRow],
     records: dict[int, MatchRecord],
     cfg: Config,
     freq: Frequencies,
+    similarities: dict[tuple[int, int], float] | None = None,
 ) -> list[Scored]:
+    sims = similarities or {}
     return [
         score_pair(
             Candidate(
@@ -81,11 +135,12 @@ def score_candidates(
                 tuple(row.blocked_by),
                 row.a_contains_b,
                 row.b_contains_a,
+                sims.get((row.a_id, row.b_id)),
             ),
             freq,
             cfg,
         )
-        for row in candidate_rows(conn, region, cfg["blocking"])
+        for row in rows
     ]
 
 
@@ -123,12 +178,31 @@ def _insert(conn: Connection, sql: str, rows: list[dict[str, Any]]) -> None:
         conn.execute(text(sql), rows)
 
 
-def match_region(engine: Engine, region: Region) -> dict[str, Any]:
+def match_region(
+    engine: Engine,
+    region: Region,
+    use_embeddings: bool | None = None,
+    embedding_feature: bool | None = None,
+    embedder: embeddings.Embedder | None = None,
+) -> dict[str, Any]:
+    """`use_embeddings` / `embedding_feature` override config/matching.yaml (None = config)."""
     cfg = load_config()
+    ecfg = cfg["embeddings"]
+    use_embeddings = ecfg["enabled"] if use_embeddings is None else use_embeddings
+    embedding_feature = ecfg["use_as_feature"] if embedding_feature is None else embedding_feature
     with track_run(engine, "match", region.name) as run, engine.begin() as conn:
         records = load_records(conn, region.name)
         freq = Frequencies(records.values())
-        scored = score_candidates(conn, region.name, records, cfg, freq)
+        rows = [
+            _row(r, tuple(r.blocked_by)) for r in candidate_rows(conn, region.name, cfg["blocking"])
+        ]
+        similarities: dict[tuple[int, int], float] = {}
+        if use_embeddings:
+            embedder = embedder or embeddings.FastEmbedder(ecfg["model"])
+            rows, similarities, run.stats["embeddings"] = add_embedding_candidates(
+                conn, records, rows, ecfg, embedder, embedding_feature
+            )
+        scored = score_candidates(rows, records, cfg, freq, similarities)
         scored, manual_non_match = apply_overrides(scored, records, freq, cfg)
         result = cluster(
             records,

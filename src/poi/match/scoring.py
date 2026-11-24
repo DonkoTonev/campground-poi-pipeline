@@ -58,6 +58,7 @@ class Candidate:
     blocked_by: tuple[str, ...] = ()
     a_contains_b: bool = False
     b_contains_a: bool = False
+    embedding_similarity: float | None = None  # set only when the embedding feature is on
 
 
 @dataclass(frozen=True)
@@ -153,6 +154,12 @@ def score_pair(c: Candidate, freq: Frequencies, cfg: Config) -> Scored:
         evidence["name_similarity"] = similarity
         if via_alt:
             evidence["name_via_alt"] = True
+
+    if c.embedding_similarity is not None:
+        contributions["embedding"] = _binned(
+            c.embedding_similarity, cfg["embeddings"]["feature"], upper=False
+        )
+        evidence["embedding_similarity"] = c.embedding_similarity
 
     disc = names.compare(a.parts, b.parts)
     if disc.conflict and shares_id(a, b):

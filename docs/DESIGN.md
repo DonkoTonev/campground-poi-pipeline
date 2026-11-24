@@ -92,6 +92,23 @@ precision and recall against the drafted labels and against the human sample, th
 rate between the two, and every disagreement, with Wilson intervals. Drafted labels are
 not ground truth; the agreement rate says how far to trust them.
 
+**Embeddings: measured, then left off.** `poi match --embeddings` adds a local name-embedding
+model (`BAAI/bge-small-en-v1.5` through fastembed, ONNX, no API calls) in two roles: a fourth
+candidate source (each record's 5 most similar names at cosine ≥ 0.85 within 20 km) and a
+binned log-odds feature. The feature bins were set from the similarity distribution of all
+candidate pairs before looking at labels, and kept small because the feature overlaps with
+name similarity. `poi eval er-embeddings` runs the three variants
+([reports/er_embeddings.md](../reports/er_embeddings.md)). As a candidate source it added
+21 pairs and changed no decision: blocking already generates all 52 labelled matches. As a
+feature it found 2 more matches (Crags, Buckeye) and made 2 false merges ("Buckeye (Upper)"
+into Buckeye), plus one unlabelled merge that looks wrong (Lake Mary Tract into Upper Lake
+Mary Tract). F1 0.928 → 0.931 is noise at n = 189, and false merges cost more than missed
+ones, so it stays off. The reason is visible in the vectors: "Upper Pines" vs "Lower Pines"
+scores 0.82 and "Tuolumne Meadows Campground" vs "Tuolumne Meadows Horse Camp" 0.90, so the
+model mostly agrees with rapidfuzz and blurs exactly the discriminators that matter here. The
+caveat cuts both ways: the gold pairs were sampled from the existing candidates, so matches
+only embeddings could find (renames, missing coordinates) are under-represented.
+
 ## Golden records, stable ids and manual fixes
 
 **One entity per real campground, with an id consumers can keep.** Each `poi resolve` maps
@@ -269,9 +286,10 @@ call has no 301), and retired or unknown ids come back as tool errors with the r
   CSS selectors (validated against a few pages), extract the rest deterministically, and
   re-learn the selectors when validation starts failing. The LLM cost then scales with the
   number of templates, not pages.
-- **Embeddings for candidate generation and as a matching feature**, for the cases names and
-  coordinates miss: renamed campgrounds and records without coordinates. Measured with an
-  ablation against the current blocking recall, not assumed.
+- **Embeddings, revisited at scale.** In this region they did not help (see entity
+  resolution), but with many sources and languages, renames and records without coordinates
+  become common enough to be worth a candidate source: an ANN index instead of the exact
+  matrix product, a gold stratum sampled from embedding-only pairs, and the ablation re-run.
 - **Active learning for the review queue.** Send reviewers the pairs whose label would move the
   thresholds most (near the decision boundary, in under-represented strata), and refit the
   weights from accumulated labels (Fellegi–Sunter m/u by EM, or a small classifier on the same

@@ -1,4 +1,7 @@
-"""`poi eval er`: precision / recall / F1 of entity resolution on *verified* gold labels.
+"""`poi eval er`: precision / recall / F1 of entity resolution against the gold labels.
+
+Truth is the Claude-drafted label (blind to the matcher) for every pair; the human-verified
+sample is scored separately, with the agreement rate between the two.
 
 Two views:
 - clustering: a pair is predicted "match" when both records ended up in the same cluster

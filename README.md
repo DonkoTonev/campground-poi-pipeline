@@ -155,6 +155,12 @@ matcher's score and decision; a person verifies a random 50 without seeing those
 Camp", and one OSM campground that two RIDB ids both claim, which the never-merge-two-RIDB-ids
 constraint keeps apart).
 
+Name embeddings (a local model: `uv sync --extra embeddings`, then `poi match --embeddings`)
+were tried as a candidate source and as a matching feature, and are off: as candidates they
+changed no decision, as a feature they traded 2 found matches for 2 false merges
+(F1 0.928 → 0.931, within noise;
+[reports/er_embeddings.md](reports/er_embeddings.md)).
+
 **Golden records.** Each field is chosen by per-field source trust plus corroboration, with
 every alternative and its provenance kept. Mean quality score: 0.58 for single-source
 entities, 0.75 for two sources, 0.99 for three. Conflicts flagged instead of guessed:

@@ -1,6 +1,6 @@
-"""Candidate generation in PostGIS: spatial, name-trigram and shared-id blocking.
+"""Candidate generation in PostGIS: spatial, name-trigram, shared-id and website blocking.
 
-Three index-backed blocking passes are unioned; each pair remembers which passes found it.
+The index-backed blocking passes are unioned; each pair remembers which passes found it.
 Distances are polygon-aware (0 when a point lies inside the other record's polygon).
 """
 
@@ -59,6 +59,22 @@ BLOCKING_SQL = text(
 
 LOW_PRECISION_M = 500.0
 
+# Same distance and containment columns as BLOCKING_SQL, for pairs another source proposed.
+PAIR_GEOMETRY_SQL = text(
+    """
+    WITH p AS (SELECT * FROM unnest(CAST(:a AS bigint[]), CAST(:b AS bigint[])) AS t(a_id, b_id)),
+    r AS (SELECT id, geom, shape, coalesce(shape, geom) AS g FROM poi_records)
+    SELECT p.a_id, p.b_id,
+           CASE WHEN a.g IS NOT NULL AND b.g IS NOT NULL
+                THEN ST_Distance(a.g::geography, b.g::geography) END AS distance_m,
+           coalesce(a.shape IS NOT NULL AND b.geom IS NOT NULL
+                    AND ST_Contains(a.shape, b.geom), false) AS a_contains_b,
+           coalesce(b.shape IS NOT NULL AND a.geom IS NOT NULL
+                    AND ST_Contains(b.shape, a.geom), false) AS b_contains_a
+    FROM p JOIN r a ON a.id = p.a_id JOIN r b ON b.id = p.b_id
+    """
+)
+
 
 def candidate_rows(conn: Connection, region: str, blocking: dict[str, Any]) -> list[Any]:
     conn.execute(
@@ -75,4 +91,12 @@ def candidate_rows(conn: Connection, region: str, blocking: dict[str, Any]) -> l
                 "low_precision_m": LOW_PRECISION_M,
             },
         )
+    )
+
+
+def pair_geometry(conn: Connection, pairs: list[tuple[int, int]]) -> list[Any]:
+    if not pairs:
+        return []
+    return list(
+        conn.execute(PAIR_GEOMETRY_SQL, {"a": [a for a, _ in pairs], "b": [b for _, b in pairs]})
     )

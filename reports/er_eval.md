@@ -1,6 +1,6 @@
 # Entity resolution evaluation
 
-Region `sierra`, 2026-11-24, matching config `8fa9b4ad34`.
+Region `sierra`, 2026-11-24, matching config `f65fb1b624`.
 
 **Labels:** Claude-drafted labels (200 pairs, drafted blind to the matcher's score and decision), 50 human-verified, agreement pending (0/50 verified so far).
 

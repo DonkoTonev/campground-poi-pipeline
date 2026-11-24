@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import uuid
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from datetime import date
 from pathlib import Path
 from typing import Any
 
 import httpx
+import numpy as np
+import numpy.typing as npt
 import pytest
 import respx
 from alembic import command
@@ -131,3 +133,17 @@ def entity_id(db: Engine, name: str) -> str:
                 {"n": name},
             ).scalar_one()
         )
+
+
+class TrigramEmbedder:
+    """Hashed character trigrams: similar spellings get similar vectors."""
+
+    model_name = "fake-trigrams"
+
+    def embed(self, texts: Sequence[str]) -> npt.NDArray[np.float32]:
+        out = np.zeros((len(texts), 64), dtype=np.float32)
+        for row, t in enumerate(texts):
+            s = f"  {t.lower()} "
+            for i in range(len(s) - 2):
+                out[row, sum(map(ord, s[i : i + 3])) % 64] += 1
+        return out
