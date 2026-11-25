@@ -210,12 +210,15 @@ def dry_run(
         docs = pending_documents(conn, setup.provider, kind, limit)
     per_kind: Counter[str] = Counter()
     tokens: Counter[str] = Counter()
+    counts: list[int] = []  # per request: pricing rules (long context) apply per request
     for doc in docs:
         body = gzip.decompress(store.get(doc.storage_key)).decode()
         request = LLMRequest(
             setup.models.cheap, INSTRUCTIONS, wrap_document(doc.kind, str(doc.id), body), Extraction
         )
-        tokens[doc.kind] += setup.client.count_tokens(request)
+        counted = setup.client.count_tokens(request)
+        counts.append(counted)
+        tokens[doc.kind] += counted
         per_kind[doc.kind] += 1
         time.sleep(0.2)  # token counting is free but rate limited too
     n_docs = sum(per_kind.values())
@@ -227,10 +230,6 @@ def dry_run(
     )  # the cacheable prefix: instructions, schema, empty wrapper
     output_tokens = n_docs * ASSUMED_OUTPUT_TOKENS
     strong_calls = round(n_docs * ASSUMED_ESCALATION_SHARE)
-    usage_strong = Usage(
-        input_tokens=round(input_tokens * ASSUMED_ESCALATION_SHARE),
-        output_tokens=strong_calls * ASSUMED_OUTPUT_TOKENS,
-    )
     cfg = cast(dict[str, Any], load_yaml("llm.yaml", settings))
     limits = cfg.get(setup.provider, {}).get("limits", {}).get(setup.models.cheap, {})
     used = calls_today(engine, setup.provider, setup.models.cheap)
@@ -243,46 +242,62 @@ def dry_run(
         "input_tokens_total": input_tokens,
         "output_tokens_assumed": output_tokens,
         "assumptions": f"{ASSUMED_OUTPUT_TOKENS} output tokens per document; "
-        f"{ASSUMED_ESCALATION_SHARE:.0%} of documents escalate to the strong model",
+        f"{ASSUMED_ESCALATION_SHARE:.0%} of documents (the largest) escalate to the strong "
+        "model; every request priced on its own",
         "requests": {"cheap": n_docs, "strong_reserve": strong_calls},
         "rate_limits": limits,
         "requests_used_today": used,
         "min_minutes_at_rpm": round((n_docs + strong_calls) / max(limits.get("rpm", 60), 1), 1),
         "instruction_tokens": instructions,
-        "estimate_usd": _estimate(
-            setup, input_tokens, output_tokens, n_docs, instructions, usage_strong
+        "estimate_usd": _estimate(setup, counts, instructions),
+    }
+
+
+def _estimate(setup: Setup, counts: list[int], instructions: int) -> dict[str, Any]:
+    """List-price estimates for the planned run, one request per document: sync without and
+    with prompt caching (instructions written once, then read), batch with caching, plus the
+    escalation reserve (the largest documents re-run on the strong model, uncached).
+
+    Each request is priced separately: rules such as long-context pricing apply to a single
+    prompt, never to the run's total."""
+    cheap, strong = setup.models.cheap, setup.models.strong
+    out_tokens = ASSUMED_OUTPUT_TOKENS
+
+    def price(model: str, usage: Usage, **kw: Any) -> float:
+        return pricing.billed(setup.provider, model, usage, **kw)
+
+    def cached(i: int, counted: int) -> Usage:
+        prefix = min(instructions, counted)
+        return Usage(
+            input_tokens=counted - prefix,
+            cache_write_tokens=prefix if i == 0 else 0,
+            cache_read_tokens=prefix if i > 0 else 0,
+            output_tokens=out_tokens,
+        )
+
+    escalated = sorted(counts, reverse=True)[: round(len(counts) * ASSUMED_ESCALATION_SHARE)]
+    out = {
+        "sync_no_cache": sum(
+            price(cheap, Usage(input_tokens=c, output_tokens=out_tokens)) for c in counts
+        ),
+        "sync_cached": sum(price(cheap, cached(i, c)) for i, c in enumerate(counts)),
+        "batch_cached": sum(
+            price(cheap, cached(i, c), batch=True, cache_ttl="1h") for i, c in enumerate(counts)
+        ),
+        "escalation_reserve": sum(
+            price(strong, Usage(input_tokens=c, output_tokens=out_tokens)) for c in escalated
         ),
     }
-
-
-def _estimate(
-    setup: Setup,
-    input_tokens: int,
-    output_tokens: int,
-    n_docs: int,
-    instructions: int,
-    usage_strong: Usage,
-) -> dict[str, Any]:
-    """List-price estimates for the planned run: sync without and with prompt caching
-    (instructions written once, then read), batch with caching, plus the escalation reserve."""
-    cheap, strong = setup.models.cheap, setup.models.strong
-    uncached = Usage(input_tokens=input_tokens, output_tokens=output_tokens)
-    cached = Usage(
-        input_tokens=max(input_tokens - n_docs * instructions, 0),
-        cache_write_tokens=instructions if n_docs else 0,
-        cache_read_tokens=max(n_docs - 1, 0) * instructions,
-        output_tokens=output_tokens,
-    )
-    reserve = pricing.billed(setup.provider, strong, usage_strong)
-    out = {
-        "sync_no_cache": pricing.billed(setup.provider, cheap, uncached),
-        "sync_cached": pricing.billed(setup.provider, cheap, cached),
-        "batch_cached": pricing.billed(setup.provider, cheap, cached, batch=True, cache_ttl="1h"),
-        "escalation_reserve": reserve,
-    }
-    out["worst_case_total"] = round(out["sync_no_cache"] + reserve, 6)
+    out = {k: round(v, 6) for k, v in out.items()}
+    out["worst_case_total"] = round(out["sync_no_cache"] + out["escalation_reserve"], 6)
     if setup.provider != "anthropic":
-        out["claude_haiku_equivalent"] = pricing.haiku_equivalent(uncached)
+        out["claude_haiku_equivalent"] = round(
+            sum(
+                pricing.haiku_equivalent(Usage(input_tokens=c, output_tokens=out_tokens))
+                for c in counts
+            ),
+            6,
+        )
     return out
 
 

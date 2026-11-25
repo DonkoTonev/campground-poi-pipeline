@@ -301,3 +301,24 @@ def test_ladder_fills_phone_from_deterministic_tel_link() -> None:
     camp = result.campgrounds[0]
     assert camp["phone"] == "+17605550142"
     assert camp["_methods"]["phone"] == "deterministic:tel_link"
+
+
+def test_estimate_prices_each_request_not_the_run_total() -> None:
+    """Long-context pricing (5x above 100k tokens) applies per prompt: 100 documents of 9k
+    tokens must cost 100 single requests, not one 900k-token prompt."""
+    from poi.extract.stage import ASSUMED_OUTPUT_TOKENS, Setup, _estimate
+
+    setup = Setup(
+        client=None,  # type: ignore[arg-type]
+        provider="anthropic",
+        models=Models("claude-haiku-5-5", "claude-sonnet-5-5"),
+        max_output_tokens=4096,
+        max_ungrounded_share=0.25,
+    )
+    est = _estimate(setup, [9_000] * 100, instructions=8_000)
+    one = billed("anthropic", "claude-haiku-5-5", Usage(9_000, ASSUMED_OUTPUT_TOKENS))
+    assert est["sync_no_cache"] == pytest.approx(100 * one, rel=1e-6)
+    assert est["sync_cached"] < est["sync_no_cache"]
+    assert est["batch_cached"] == pytest.approx(est["sync_cached"] / 2, rel=0.2)
+    strong = billed("anthropic", "claude-sonnet-5-5", Usage(9_000, ASSUMED_OUTPUT_TOKENS))
+    assert est["escalation_reserve"] == pytest.approx(20 * strong, rel=1e-6)

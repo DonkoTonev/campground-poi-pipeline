@@ -16,6 +16,7 @@ from poi.extract.pricing import HAIKU, billed
 
 
 def _haiku(tokens_in: float, tokens_out: float, batch: bool = False) -> float:
+    """Haiku list price of ONE request (pricing rules such as long context are per prompt)."""
     return billed("anthropic", HAIKU, Usage(int(tokens_in), int(tokens_out)), batch=batch)
 
 
@@ -178,8 +179,9 @@ def cost_report(conn: Connection, region: str) -> str:
         ):
             per_page = reduce_stats[f"page_tokens:{key}"] / pages
             n = 1_000_000
-            cost = _haiku((per_page + prompt_overhead) * n, per_page_out * n)
-            batch = _haiku((per_page + prompt_overhead) * n, per_page_out * n, batch=True)
+            # Priced per request, then scaled: long-context pricing applies per prompt.
+            cost = _haiku(per_page + prompt_overhead, per_page_out) * n
+            batch = _haiku(per_page + prompt_overhead, per_page_out, batch=True) * n
             lines.append(f"| {label} | {int(per_page):,} | ${cost:,.0f} | ${batch:,.0f} |")
         lines += [
             "",
