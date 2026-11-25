@@ -7,9 +7,10 @@ hallucination-bait violations, person-name leaks, tokens and cost per page.
 `poi eval ablation`: the same cases sent as raw HTML, cleaned HTML, Markdown and plain text
 to the cheap model only (one call each, no escalation), to measure tokens against accuracy.
 
-Both replay recorded responses by default (free); `--live` calls the provider and records
-the responses. Recordings exist only after a live run, so on a fresh clone the replay mode has
-nothing to replay yet and stops with `MissingRecordingError`.
+Both replay recorded responses by default (free). `--live` calls the provider for requests
+not recorded yet and needs `--max-cost-usd`: a BudgetGuard stops before any call that could
+pass it. `--dry-run` counts and prices those requests for free. Recordings exist only after a
+live run, so on a fresh clone the replay mode stops with `MissingRecordingError`.
 """
 
 from __future__ import annotations
@@ -26,11 +27,11 @@ from sqlalchemy import Engine
 
 from poi.extract.grounding import ground
 from poi.extract.ladder import run_ladder
-from poi.extract.llm.base import LLMRequest, LLMResponse
-from poi.extract.pricing import haiku_equivalent
+from poi.extract.llm.base import LLMRequest, LLMResponse, Usage
+from poi.extract.pricing import billed, haiku_equivalent
 from poi.extract.prompt import INSTRUCTIONS, PROMPT_VERSION, wrap_document
 from poi.extract.schema import Extraction
-from poi.extract.stage import Setup, record_call
+from poi.extract.stage import ASSUMED_OUTPUT_TOKENS, Setup, record_call
 from poi.reduce import bundle
 from poi.reduce.html import clean_html, represent, to_text
 from poi.reduce.tokens import estimate
@@ -196,6 +197,73 @@ class Spend:
         self.haiku_usd += haiku_equivalent(u)
 
 
+def ablation_request(setup: Setup, case: Case, rep: str, text: str) -> LLMRequest:
+    return LLMRequest(
+        setup.models.cheap,
+        INSTRUCTIONS,
+        wrap_document("web_bundle", f"gold:{case.id}:{rep}", text),
+        Extraction,
+        setup.max_output_tokens,
+        key=f"ablation:{case.id}:{rep}",
+    )
+
+
+def ladder_requests(setup: Setup, case: Case) -> tuple[LLMRequest, LLMRequest]:
+    """The cheap request `run_ladder` sends for a gold case, and the escalation it may send."""
+    user = wrap_document("web_bundle", f"gold:{case.id}", document_for(case))
+    doc_id = f"gold:{case.id}"
+    return tuple(  # type: ignore[return-value]
+        LLMRequest(model, INSTRUCTIONS, user, Extraction, setup.max_output_tokens,
+                   key=f"{doc_id}:{step}")
+        for step, model in (("cheap", setup.models.cheap), ("strong", setup.models.strong))
+    )  # fmt: skip
+
+
+def dry_run(setup: Setup, which: str) -> dict[str, Any]:
+    """Free: counts the input tokens of every request the eval would send (already recorded
+    requests cost nothing) and prices each one on its own. `which`: extraction | ablation."""
+    planned: list[tuple[LLMRequest, bool]] = []  # (request, only if escalated)
+    for case in load_cases():
+        if which == "extraction":
+            cheap, strong = ladder_requests(setup, case)
+            planned += [(cheap, False), (strong, True)]
+        else:
+            planned += [
+                (ablation_request(setup, case, rep, document_for(case, rep)), False)
+                for rep in REPRESENTATIONS
+            ]
+    sure = reserve = 0.0
+    tokens = recorded = 0
+    for request, if_escalated in planned:
+        if setup.client.has(request):  # type: ignore[attr-defined]
+            recorded += 1
+            continue
+        counted = setup.client.count_tokens(request)
+        tokens += counted
+        usage = Usage(input_tokens=counted, output_tokens=ASSUMED_OUTPUT_TOKENS)
+        cost = billed(setup.provider, request.model, usage)
+        if if_escalated:
+            reserve += cost
+        else:
+            sure += cost
+    return {
+        "eval": which,
+        "provider": setup.provider,
+        "models": {"cheap": setup.models.cheap, "strong": setup.models.strong},
+        "cases": len(load_cases()),
+        "requests_planned": len(planned),
+        "already_recorded": recorded,
+        "input_tokens_counted": tokens,
+        "assumptions": f"{ASSUMED_OUTPUT_TOKENS} output tokens per request, no caching"
+        + ("; worst case: every case escalates" if which == "extraction" else ""),
+        "estimate_usd": {
+            "calls": round(sure, 6),
+            "escalation_reserve": round(reserve, 6),
+            "worst_case_total": round(sure + reserve, 6),
+        },
+    }
+
+
 def evaluate(engine: Engine, setup: Setup) -> dict[str, Any]:
     s, spend = Score(), Spend()
     with engine.begin() as conn:
@@ -233,14 +301,7 @@ def ablation(engine: Engine, setup: Setup) -> dict[str, Any]:
             for case in load_cases():
                 text = document_for(case, rep)
                 spend.doc_tokens_est += estimate(text)
-                request = LLMRequest(
-                    setup.models.cheap,
-                    INSTRUCTIONS,
-                    wrap_document("web_bundle", f"gold:{case.id}:{rep}", text),
-                    Extraction,
-                    setup.max_output_tokens,
-                    key=f"ablation:{case.id}:{rep}",
-                )
+                request = ablation_request(setup, case, rep, text)
                 response = setup.client.extract(request)
                 spend.add(response)
                 record_call(

@@ -346,9 +346,22 @@ def extract(
 def eval_extraction(
     live: Annotated[bool, typer.Option(help="Call the provider for missing recordings.")] = False,
     provider: Annotated[str | None, typer.Option(help="gemini or anthropic.")] = None,
+    dry_run_: Annotated[
+        bool, typer.Option("--dry-run", help="Count and price the unrecorded requests; no calls.")
+    ] = False,
+    max_cost_usd: Annotated[
+        float | None, typer.Option(help="Hard stop for --live (required with --live).")
+    ] = None,
 ) -> None:
     """Per-field accuracy, hallucination bait, cost per page; writes reports/extraction_eval.md."""
-    setup = build_client(get_engine(), get_settings(), "record" if live else "replay", provider)
+    if dry_run_:
+        setup = build_client(get_engine(), get_settings(), "record", provider)
+        typer.echo(json.dumps(extraction_eval.dry_run(setup, "extraction"), indent=2))
+        return
+    if live and max_cost_usd is None:
+        raise typer.BadParameter("--live needs --max-cost-usd (run --dry-run first)")
+    mode: Mode = "record" if live else "replay"
+    setup = build_client(get_engine(), get_settings(), mode, provider, max_cost_usd)
     result = extraction_eval.evaluate(get_engine(), setup)
     typer.echo(json.dumps({k: v for k, v in result.items() if k != "errors"}, indent=2))
 
@@ -357,9 +370,22 @@ def eval_extraction(
 def eval_ablation(
     live: Annotated[bool, typer.Option(help="Call the provider for missing recordings.")] = False,
     provider: Annotated[str | None, typer.Option(help="gemini or anthropic.")] = None,
+    dry_run_: Annotated[
+        bool, typer.Option("--dry-run", help="Count and price the unrecorded requests; no calls.")
+    ] = False,
+    max_cost_usd: Annotated[
+        float | None, typer.Option(help="Hard stop for --live (required with --live).")
+    ] = None,
 ) -> None:
     """Raw HTML vs cleaned HTML vs Markdown vs text: tokens and accuracy (reports/ablation.md)."""
-    setup = build_client(get_engine(), get_settings(), "record" if live else "replay", provider)
+    if dry_run_:
+        setup = build_client(get_engine(), get_settings(), "record", provider)
+        typer.echo(json.dumps(extraction_eval.dry_run(setup, "ablation"), indent=2))
+        return
+    if live and max_cost_usd is None:
+        raise typer.BadParameter("--live needs --max-cost-usd (run --dry-run first)")
+    mode: Mode = "record" if live else "replay"
+    setup = build_client(get_engine(), get_settings(), mode, provider, max_cost_usd)
     rows = extraction_eval.ablation(get_engine(), setup)
     typer.echo(
         json.dumps(

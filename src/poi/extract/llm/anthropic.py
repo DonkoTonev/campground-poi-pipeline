@@ -2,12 +2,15 @@
 
 Tested against API-shaped fixtures through the real SDK (an `httpx2.MockTransport`), so the
 tests check exactly what would be sent. Design:
-- structured outputs via `output_config.format` with the SDK's `transform_schema` of the
-  pydantic model (`additionalProperties: false`); the reply is validated locally after
-  checking the stop reason (a refusal is a refusal, not a schema error);
-- the static instructions are one system block with a `cache_control` breakpoint, so every
-  request after the first reads them from cache (min. cacheable prefix 512 tokens on
-  Haiku/Sonnet 5.5; the instructions are longer than that);
+- the output schema travels in the system prompt, not as `output_config.format`: constrained
+  decoding allows at most 24 optional and 16 union-typed parameters per request, and the
+  extraction contract has about 60 optional fields (the API answers "compiled grammar is too
+  large"). Making every field required would make the model write all of them for every
+  campground, and output tokens cost 5x input. The reply is validated locally against the
+  same pydantic model after checking the stop reason; an invalid reply is an
+  `invalid_output` outcome, which the ladder escalates;
+- instructions plus schema are one system block with a `cache_control` breakpoint, so every
+  request after the first reads them from cache;
 - thinking off: Haiku 5.5 accepts `{"type": "disabled"}`; Sonnet 5.5 rejects it and uses
   `{"type": "between_tools"}` (no thinking without tool calls);
 - batches: 50% price, 1-hour cache TTL (requests in a batch run far apart in time).
@@ -21,7 +24,6 @@ from collections.abc import Callable, Iterable
 from typing import Any, cast
 
 import anthropic
-from anthropic import transform_schema
 from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
 from anthropic.types.messages.batch_create_params import Request
 from pydantic import ValidationError
@@ -34,11 +36,47 @@ THINKING_OFF: dict[str, dict[str, str]] = {
 }
 
 
+def _lean(node: Any) -> Any:
+    """The schema without `null` branches (unknown fields are omitted, never null) and
+    without titles: fewer tokens, same contract (validation stays local and complete)."""
+    if isinstance(node, dict):
+        node = {k: _lean(v) for k, v in node.items() if k != "title"}
+        if "anyOf" in node:
+            branches = [b for b in node["anyOf"] if b != {"type": "null"}]
+            if len(branches) == 1:
+                rest = {k: v for k, v in node.items() if k != "anyOf"}
+                return {**branches[0], **rest}
+            node["anyOf"] = branches
+        return node
+    if isinstance(node, list):
+        return [_lean(v) for v in node]
+    return node
+
+
+def schema_text(schema: type[Any]) -> str:
+    return (
+        "Reply with exactly one JSON object and nothing else: no prose, no Markdown fences. "
+        "It must validate against this JSON Schema. Leave out every field the document does "
+        "not state (never write null):\n"
+        + json.dumps(_lean(schema.model_json_schema()), separators=(",", ":"), sort_keys=True)
+    )
+
+
 def _system(request: LLMRequest, ttl: str | None = None) -> list[dict[str, Any]]:
     cache: dict[str, str] = {"type": "ephemeral"}
     if ttl:
         cache["ttl"] = ttl
-    return [{"type": "text", "text": request.system, "cache_control": cache}]
+    text = f"{request.system}\n\n{schema_text(request.schema)}"
+    return [{"type": "text", "text": text, "cache_control": cache}]
+
+
+def _json_text(text: str) -> str:
+    """Tolerate a Markdown fence around the object (the prompt asks for none)."""
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        stripped = stripped.split("\n", 1)[1] if "\n" in stripped else ""
+        stripped = stripped.rsplit("```", 1)[0]
+    return stripped.strip()
 
 
 def _usage(usage: Any) -> Usage:
@@ -68,7 +106,7 @@ def _from_message(
     error = None
     if outcome == "ok":
         try:
-            parsed = request.schema.model_validate(json.loads(text)).model_dump(
+            parsed = request.schema.model_validate(json.loads(_json_text(text))).model_dump(
                 mode="json", exclude_none=True, exclude_defaults=True
             )
         except (json.JSONDecodeError, ValidationError) as exc:
@@ -111,19 +149,13 @@ class AnthropicClient:
             model=params["model"],
             system=params["system"],
             messages=params["messages"],
-            output_config={
-                "format": {"type": "json_schema", "schema": transform_schema(request.schema)}
-            },
         )
         return int(result.input_tokens)
 
-    def _format(self, request: LLMRequest) -> dict[str, Any]:
-        return {"format": {"type": "json_schema", "schema": transform_schema(request.schema)}}
-
     def extract(self, request: LLMRequest) -> LLMResponse:
-        """Structured output via `output_config.format` (the same request shape as a batch
-        entry), validated locally after checking the stop reason: a refusal must be reported
-        as a refusal, not as a schema error."""
+        """JSON reply (schema in the system prompt, same request shape as a batch entry),
+        validated locally after checking the stop reason: a refusal must be reported as a
+        refusal, not as a schema error."""
         start = time.monotonic()
         try:
             params = self._params(request)
@@ -133,7 +165,6 @@ class AnthropicClient:
                 system=params["system"],
                 messages=params["messages"],
                 thinking=params["thinking"],
-                output_config=cast(Any, self._format(request)),
             )
         except anthropic.APIStatusError as exc:  # the SDK already retried 429/5xx
             return LLMResponse(
@@ -154,24 +185,13 @@ class AnthropicClient:
     # -- Message Batches ---------------------------------------------------------------
 
     def submit_batch(self, requests: Iterable[LLMRequest]) -> str:
-        """One batch, 50% price. Structured output is sent as `output_config.format` (the
-        `parse` helper is not available for batches); results are validated on collection."""
+        """One batch, 50% price, same request shape as a sync call; results are validated
+        on collection."""
         batch = self.client.messages.batches.create(
             requests=[
                 Request(
                     custom_id=r.key,
-                    params=cast(
-                        MessageCreateParamsNonStreaming,
-                        self._params(r, ttl="1h")
-                        | {
-                            "output_config": {
-                                "format": {
-                                    "type": "json_schema",
-                                    "schema": transform_schema(r.schema),
-                                }
-                            }
-                        },
-                    ),
+                    params=cast(MessageCreateParamsNonStreaming, self._params(r, ttl="1h")),
                 )
                 for r in requests
             ]

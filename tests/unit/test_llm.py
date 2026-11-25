@@ -62,7 +62,7 @@ def _message(payload: dict[str, Any], stop: str = "end_turn") -> dict[str, Any]:
     }
 
 
-def test_anthropic_request_uses_structured_output_caching_and_no_thinking() -> None:
+def test_anthropic_request_puts_schema_in_cached_prompt_and_no_thinking() -> None:
     sent: dict[str, Any] = {}
 
     def handler(request: httpx2.Request) -> httpx2.Response:
@@ -71,12 +71,13 @@ def test_anthropic_request_uses_structured_output_caching_and_no_thinking() -> N
 
     response = _anthropic(handler).extract(_request())
     assert sent["system"][0]["cache_control"] == {"type": "ephemeral"}  # cached static prefix
-    assert sent["system"][0]["text"] == INSTRUCTIONS
+    system = sent["system"][0]["text"]
+    assert system.startswith(INSTRUCTIONS) and '"page_kind"' in system  # schema in the prefix
+    assert '{"type":"null"}' not in system and '"title"' not in system  # lean schema
     assert "<document" in sent["messages"][0]["content"]  # document after the prefix
     assert sent["thinking"] == {"type": "disabled"}
-    schema = sent["output_config"]["format"]["schema"]
-    assert sent["output_config"]["format"]["type"] == "json_schema"
-    assert schema["additionalProperties"] is False
+    # No constrained decoding: the contract exceeds its optional/union parameter limits.
+    assert "output_config" not in sent
     assert response.outcome == "ok" and response.parsed is not None
     assert response.parsed["campgrounds"][0]["num_sites"] == 40
     assert response.usage == Usage(input_tokens=120, output_tokens=60, cache_read_tokens=1500)
@@ -91,6 +92,14 @@ def test_sonnet_escalation_uses_between_tools_instead_of_disabled() -> None:
 
     _anthropic(handler).extract(_request("claude-sonnet-5-5"))
     assert sent["thinking"] == {"type": "between_tools"}  # Sonnet 5.5 rejects "disabled"
+
+
+def test_anthropic_reply_in_a_markdown_fence_still_parses() -> None:
+    fenced = _message(GOOD)
+    fenced["content"][0]["text"] = "```json\n" + json.dumps(GOOD) + "\n```"
+    client = _anthropic(lambda r: httpx2.Response(200, json=fenced))
+    response = client.extract(_request())
+    assert response.outcome == "ok" and response.parsed is not None
 
 
 def test_anthropic_refusal_and_api_error_are_outcomes_not_exceptions() -> None:
@@ -150,7 +159,7 @@ def test_anthropic_batch_create_poll_and_collect_by_custom_id() -> None:
     batch_id = client.submit_batch(requests.values())
     params = sent["requests"][0]["params"]
     assert params["system"][0]["cache_control"] == {"type": "ephemeral", "ttl": "1h"}
-    assert params["output_config"]["format"]["schema"]["additionalProperties"] is False
+    assert "output_config" not in params and '"campgrounds"' in params["system"][0]["text"]
     client.wait_batch(batch_id, poll_s=0)
     out = client.collect_batch(batch_id, requests)
     assert out["doc-1"].outcome == "ok" and out["doc-1"].parsed is not None

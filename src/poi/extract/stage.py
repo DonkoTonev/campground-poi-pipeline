@@ -65,8 +65,13 @@ def calls_today(engine: Engine, provider: str, model: str) -> int:
 
 
 def build_client(
-    engine: Engine, settings: Settings, mode: Mode, provider: str | None = None
+    engine: Engine,
+    settings: Settings,
+    mode: Mode,
+    provider: str | None = None,
+    max_cost_usd: float | None = None,
 ) -> Setup:
+    """`max_cost_usd` wraps the provider client in a BudgetGuard (replays stay free)."""
     cfg = cast(dict[str, Any], load_yaml("llm.yaml", settings))
     provider = provider or cfg["provider"]
     pcfg = cfg[provider]
@@ -108,6 +113,13 @@ def build_client(
             inner = AnthropicClient(
                 anthropic.Anthropic(api_key=settings.anthropic_api_key.get_secret_value())
             )
+    if inner is not None and max_cost_usd is not None:
+        from poi.extract.llm.budget import BudgetGuard
+
+        billed_by = provider
+        inner = BudgetGuard(
+            inner, max_cost_usd, lambda model, usage: pricing.billed(billed_by, model, usage)
+        )
     client = ReplayClient(
         provider, inner, mode, RECORDINGS / provider, read_dirs=(SYNTHETIC_RECORDINGS / provider,)
     )
@@ -148,9 +160,9 @@ def record_call(
             INSERT INTO llm_calls (run_id, document_id, purpose, provider, model, prompt_version,
                 request_hash, ladder_step, is_batch, input_tokens, output_tokens,
                 cache_read_tokens, cache_write_tokens, thinking_tokens, cost_usd, est_haiku_usd,
-                latency_ms, stop_reason, outcome, replayed)
+                latency_ms, stop_reason, outcome, replayed, error)
             VALUES (:run, :doc, :purpose, :provider, :model, :pv, :hash, :step, :batch, :inp,
-                :out, :cr, :cw, :th, :cost, :haiku, :lat, :stop, :outcome, :replayed)
+                :out, :cr, :cw, :th, :cost, :haiku, :lat, :stop, :outcome, :replayed, :error)
             """
         ),
         {
@@ -170,6 +182,7 @@ def record_call(
             "th": response.usage.thinking_tokens,
             "cost": billed,
             "haiku": pricing.haiku_equivalent(response.usage),
+            "error": (response.error or "")[:1000] or None,
             "lat": response.latency_ms,
             "stop": response.stop_reason,
             "outcome": response.outcome,
