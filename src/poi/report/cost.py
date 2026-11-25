@@ -29,7 +29,7 @@ def cost_report(conn: Connection, region: str) -> str:
                    sum(output_tokens) AS out, sum(thinking_tokens) AS think,
                    sum(cost_usd) AS billed, sum(est_haiku_usd) AS haiku,
                    round(avg(latency_ms)) AS latency
-            FROM llm_calls WHERE purpose = 'extract' AND NOT replayed
+            FROM llm_calls WHERE purpose = 'extract' AND NOT replayed AND outcome <> 'error'
             GROUP BY 1, 2, 3 ORDER BY 1, 3 DESC
             """
         )
@@ -40,12 +40,22 @@ def cost_report(conn: Connection, region: str) -> str:
             SELECT d.kind, count(DISTINCT d.id) AS docs,
                    sum(c.input_tokens + c.cache_read_tokens) AS inp, sum(c.output_tokens) AS out,
                    sum(c.est_haiku_usd) AS haiku,
-                   count(*) FILTER (WHERE c.ladder_step = 'strong') AS strong
+                   count(DISTINCT c.document_id) FILTER (WHERE c.ladder_step = 'strong')
+                       AS strong
             FROM llm_calls c JOIN documents d ON d.id = c.document_id
-            WHERE c.purpose = 'extract' AND NOT c.replayed GROUP BY 1 ORDER BY 1
+            -- only the calls behind each document's current extraction
+            JOIN extractions x ON x.document_id = c.document_id AND x.run_id = c.run_id
+            WHERE c.purpose = 'extract' AND NOT c.replayed AND c.outcome <> 'error'
+            GROUP BY 1 ORDER BY 1
             """
         )
     ).all()
+    failed = conn.execute(
+        text(
+            "SELECT count(*) AS n, count(DISTINCT run_id) AS runs, min(error) AS example "
+            "FROM llm_calls WHERE purpose = 'extract' AND NOT replayed AND outcome = 'error'"
+        )
+    ).one()
     outcomes = conn.execute(
         text(
             "SELECT d.kind, x.status, x.ladder_step, count(*) AS n, "
@@ -75,7 +85,7 @@ def cost_report(conn: Connection, region: str) -> str:
     total_in = sum(float(c.inp or 0) for c in calls)
     total_out = sum(float(c.out or 0) + float(c.think or 0) for c in calls)
     haiku_total = sum(float(c.haiku or 0) for c in calls)
-    strong = sum(c.n for c in calls if c.ladder_step == "strong")
+    strong = sum(k.strong for k in kinds)
     cached = sum(float(c.cached or 0) for c in calls)
 
     providers = sorted({c.provider for c in calls})
@@ -111,13 +121,23 @@ def cost_report(conn: Connection, region: str) -> str:
             for c in calls
         ),
         "",
-        f"Escalation rate: {strong} of {total_docs} documents ({strong / total_docs:.0%}) went "
-        f"to the strong model. Cache hits: {cached / total_in:.0%} of input tokens were read "
-        "from the provider's cache."
+        "All successful live calls, including runs whose extractions were later replaced. "
+        + (
+            f"Failed calls (not billed, no tokens): {failed.n} in {failed.runs} run(s)"
+            + (f", e.g. `{failed.example[:120]}`." if failed.example else ".")
+            if failed.n
+            else "No failed calls."
+        ),
+        "",
+        f"Escalation rate (current extractions): {strong} of {total_docs} documents "
+        f"({strong / total_docs:.0%}) went to the strong model. Cache hits: "
+        f"{cached / total_in:.0%} of input tokens were read from the provider's cache."
         if total_in
         else "No live extraction calls yet.",
         "",
         "## By input (provenance)",
+        "",
+        "Calls behind each document's current extraction.",
         "",
         "| input | documents | input tokens / doc | output tokens / doc | est. Haiku $ / doc "
         "| escalations |",

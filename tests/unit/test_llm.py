@@ -383,3 +383,10 @@ def test_eval_dry_run_prices_unrecorded_requests_only(tmp_path: Path) -> None:
     client.extract(cheap)  # now recorded: free in the next plan
     assert ev.dry_run(setup, "extraction")["already_recorded"] == 1
     assert ev.dry_run(setup, "ablation")["requests_planned"] == 4 * n
+
+
+def test_eval_scoring_compares_nested_numbers_numerically() -> None:
+    from poi.eval.extraction import value_ok
+
+    assert value_ok("max_rv_length", {"value": 12, "unit": "m"}, {"value": 12.0, "unit": "m"})
+    assert not value_ok("max_rv_length", {"value": 12, "unit": "m"}, {"value": 12, "unit": "ft"})

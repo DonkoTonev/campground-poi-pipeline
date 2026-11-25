@@ -102,8 +102,8 @@ def value_ok(fld: str, expected: Any, got: Any) -> bool:
             return False
         return all(got[0].get(k) == v for k, v in expected[0].items())
     if isinstance(expected, dict):
-        return isinstance(got, dict) and all(
-            str(got.get(k)).lower() == str(v).lower() for k, v in expected.items()
+        return isinstance(got, dict) and all(  # same rules per value (12 == 12.0)
+            value_ok(k, v, got.get(k)) for k, v in expected.items()
         )
     if isinstance(expected, (int, float)) and not isinstance(expected, bool):
         try:

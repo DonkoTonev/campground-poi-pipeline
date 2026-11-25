@@ -172,7 +172,9 @@ def build_golden(
                 if r["price_min"] is None
                 else {
                     "min": float(r["price_min"]),
-                    "max": float(r["price_max"]),
+                    "max": None
+                    if r["price_max"] is None
+                    else float(r["price_max"]),  # unknown stays unknown
                     "currency": r["currency"],
                 }
             )
