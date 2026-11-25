@@ -142,10 +142,12 @@ had not defined "match"; it now does (same real-world campground, one pin).
 After adjudication (`poi review adjudicate`, a third label; both originals are kept): the
 final label sides with the draft on 16 of the 22, with the person's first label on 5, and with
 neither on 1. Against the final labels the draft is right on 44 of 50 sample pairs (88%), the
-person's first labels on 33 of 50 (66%). Four of the five pairs settled as match are related
-facilities the matcher deliberately keeps as separate entities (two horse camps next to their
-family campground, two lettered loops, a backpackers' campground next to the main one), so the
-final labels count them as matches the matcher misses. [reports/er_eval.md](reports/er_eval.md)
+person's first labels on 33 of 50 (66%). The final labels are kept as adjudicated, with one
+caveat: 4 of them count related facilities as matches, contrary to the definition on the
+labelling screen (two horse camps beside their family campground; two lettered loops; a
+backpackers' campground beside the main one). The pipeline keeps such facilities as separate
+entities linked as parent and child, by design, so these 4 explain most of the recall gap
+below. [reports/er_eval.md](reports/er_eval.md)
 lists all 22 with the draft, its rationale, the first human label and the final label.
 
 Matcher precision and recall depend on which labels are taken as truth, so all are shown
@@ -158,12 +160,11 @@ Matcher precision and recall depend on which labels are taken as truth, so all a
 | **final, after adjudication** (decisive sample pairs) | 47 | **1.00 (0.80–1.00)** | **0.75 (0.53–0.89)** |
 | drafted, corrected by adjudication (all decisive pairs) | 189 | 1.00 (0.92–1.00) | 0.80 (0.68–0.89) |
 
-No label set finds a false merge. The missed matches are name variants ("Agnew Meadows Horse
-Campground" vs "Agnew Horse Camp", a miss under every label set), one OSM campground that two
-RIDB ids both claim (the never-merge-two-RIDB-ids constraint keeps it apart), and, under the
-adjudicated labels, the related facilities above. Whether those should be one entity or a
-parent with children is a product decision; the matcher currently links some of them as
-sub-areas (Bridalveil Creek Horse Camp is a child of Bridalveil Creek Campground).
+No label set finds a false merge. Against the final labels, 4 of the 5 missed matches are
+those related-facility pairs; the one real miss is "Agnew Meadows Horse Campground" vs "Agnew
+Horse Camp" (a name variant, missed under every label set). Against the drafted labels the
+misses are name variants like that one and one OSM campground that two RIDB ids both claim
+(the never-merge-two-RIDB-ids constraint keeps it apart). The merge threshold stays at 4.
 
 Name embeddings (a local model: `uv sync --extra embeddings`, then `poi match --embeddings`)
 were tried as a candidate source and as a matching feature, and are off: as candidates they
@@ -342,10 +343,11 @@ Production sketch on AWS: [docs/aws.md](docs/aws.md).
 
 ## Limitations and next steps
 
-- Decide whether related facilities (horse camps, loops, backpackers' sites) are one entity or
-  children of one, then the merge threshold. Pair scores alone on the drafted labels
-  (before clustering, so recall differs from the 0.87 above): at 4, the current setting,
-  precision 1.00 / recall 0.88; at 2, precision 0.96 / recall 0.92.
+- The merge threshold stays at 4, favouring precision: pair scores alone on the drafted labels
+  (before clustering) give precision 1.00 / recall 0.88 at 4, and 0.96 / 0.92 at 2.
+- Name variants such as "Agnew Meadows Horse Campground" vs "Agnew Horse Camp" are still
+  missed; a better core-name comparison (dropping "Meadows"-style qualifiers only when an id
+  or the distance supports it) is the next matching improvement.
 - One region; Forest Service websites are blocked for identified crawlers, so their facts come
   only from RIDB descriptions.
 - Token counts in the reduction report are bytes/4 estimates; `count_tokens` shows they are
