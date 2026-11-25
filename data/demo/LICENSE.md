@@ -1,7 +1,8 @@
 # Demo data: sources, licenses, changes
 
 `source_records.jsonl.gz` is a snapshot of structured records for the `sierra` region, used by
-`make demo` so the pipeline runs without API keys or network access.
+`make demo` so the pipeline runs without API keys or calls to the source APIs (Docker
+images and Python packages are still downloaded on the first run).
 
 ## Sources and licenses
 
@@ -12,7 +13,7 @@
 - **Recreation Information Database** records (`source = ridb`): Recreation.gov RIDB API,
   U.S. federal government data.
 - **NPS API** records (`source = nps`): U.S. National Park Service, federal government data.
-- `data/reference/admin1_us_ca.geojson`: Natural Earth admin-1 boundaries, public domain.
+- `data/reference/admin1_us_canada.geojson`: Natural Earth admin-1 boundaries, public domain.
 
 ## Changes made to the original records
 

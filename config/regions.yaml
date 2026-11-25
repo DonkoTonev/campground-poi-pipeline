@@ -5,7 +5,7 @@ sierra:
   states: [CA, NV]
   nps_park_codes: [yose, depo]
 
-# Defined for later use only. Do not ingest or crawl without explicit approval.
+# A second region, defined but not ingested or crawled: every number in the docs is `sierra`.
 tahoe:
   description: Lake Tahoe basin and surroundings
   bbox: [38.70, -120.30, 39.40, -119.80]

@@ -1,8 +1,8 @@
 # Embeddings in entity resolution: ablation
 
-Region `sierra`, 2026-11-24, model `BAAI/bge-small-en-v1.5` (local, fastembed), top 5 neighbours at cosine ≥ 0.85 within 20 km.
+Region `sierra`, 2026-11-25, model `BAAI/bge-small-en-v1.5` (local, fastembed), top 5 neighbours at cosine ≥ 0.85 within 20 km.
 
-**Labels:** Claude-drafted labels (200 pairs, drafted blind to the matcher's score and decision), 50 human-verified, agreement pending (0/50 verified so far).
+**Labels:** Claude-drafted labels (200 pairs, drafted blind to the matcher's score and decision), 50 drawn for human verification (0 verified so far), agreement pending.
 
 189 gold pairs with a match / non-match label (52 matches). Intervals are Wilson 95%. The gold pairs were sampled from the blocking candidates that existed before embeddings (plus a stratum of similar names blocking missed), so pairs that only embeddings find are under-represented; every changed decision is listed below, labelled or not.
 

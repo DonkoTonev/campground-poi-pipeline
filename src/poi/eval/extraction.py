@@ -7,7 +7,9 @@ hallucination-bait violations, person-name leaks, tokens and cost per page.
 `poi eval ablation`: the same cases sent as raw HTML, cleaned HTML, Markdown and plain text
 to the cheap model only (one call each, no escalation), to measure tokens against accuracy.
 
-Both replay recorded responses by default (free); `--live` calls the provider.
+Both replay recorded responses by default (free); `--live` calls the provider and records
+the responses. Recordings exist only after a live run, so on a fresh clone the replay mode has
+nothing to replay yet and stops with `MissingRecordingError`.
 """
 
 from __future__ import annotations

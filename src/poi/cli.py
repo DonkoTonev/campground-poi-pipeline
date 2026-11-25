@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-import logging
+from pathlib import Path
 from typing import Annotated, cast
 
 import typer
@@ -20,17 +20,21 @@ from poi.match.stage import match_region
 from poi.normalize.stage import normalize_region
 from poi.reduce.stage import reduce_region
 from poi.report import cost as cost_report
-from poi.report import quality as reports
+from poi.report import quality as quality_report
 from poi.report import tokens as token_report
+from poi.report import write as write_report
 from poi.resolve.stage import resolve_region
-from poi.review import gold, label, queue
+from poi.review import drafts, gold, label, queue
 from poi.settings import PROJECT_ROOT, get_settings, load_region
 from poi.sources import ALL_SOURCES
 from poi.storage import make_store
 
 app = typer.Typer(no_args_is_help=True, help="Campground POI pipeline.")
 review_app = typer.Typer(no_args_is_help=True, help="Human-in-the-loop review and labelling.")
-eval_app = typer.Typer(no_args_is_help=True, help="Evaluation against verified gold sets.")
+eval_app = typer.Typer(
+    no_args_is_help=True,
+    help="Evaluation against the gold sets (ER labels, synthetic extraction cases).",
+)
 app.add_typer(review_app, name="review")
 app.add_typer(eval_app, name="eval")
 report_app = typer.Typer(no_args_is_help=True, help="Markdown reports in reports/.")
@@ -133,14 +137,56 @@ def suggest_gold(
     )
 
 
+@review_app.command("export-blind")
+def review_export_blind(
+    out_dir: Annotated[Path, typer.Argument(help="Directory for the blind pair files.")],
+    parts: Annotated[int, typer.Option(help="Number of files to split the pairs into.")] = 2,
+) -> None:
+    """Gold pairs as the two records plus distance only (no score, decision or strata)."""
+    with get_engine().connect() as conn:
+        paths = drafts.export_blind(conn, gold.load(), out_dir, parts)
+    typer.echo("\n".join(str(p) for p in paths))
+
+
+@review_app.command("import-drafts")
+def review_import_drafts(
+    files: Annotated[list[Path], typer.Argument(help='JSONL: {"pair", "label", "rationale"}.')],
+    by: Annotated[str, typer.Option(help="Who drafted the labels (stored as labeled_by).")],
+    force: Annotated[bool, typer.Option(help="Overwrite existing drafted labels.")] = False,
+) -> None:
+    """Store blind-drafted labels with their rationales in the gold file."""
+    pairs = gold.load()
+    try:
+        n = drafts.import_drafts(pairs, files, by, force)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    gold.save(pairs)
+    typer.echo(f"{n} drafted labels stored")
+
+
+@review_app.command("draw-sample")
+def review_draw_sample(
+    n: Annotated[int, typer.Option(help="Pairs for human verification.")] = 50,
+    seed: Annotated[int, typer.Option(help="Random seed (recorded in the docs).")] = 20261124,
+) -> None:
+    """Pick the random pairs a person verifies with `poi review label`; never redraws."""
+    pairs = gold.load()
+    try:
+        sample = drafts.draw_sample(pairs, n, seed)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    gold.save(pairs)
+    typer.echo(f"{len(sample)} pairs drawn for human verification")
+
+
 @review_app.command("label")
 def review_label(
     show_suggestion: Annotated[
         bool, typer.Option(help="Show the model's suggestion (off: avoids anchoring).")
     ] = False,
-    relabel: Annotated[bool, typer.Option(help="Also revisit verified pairs.")] = False,
+    relabel: Annotated[bool, typer.Option(help="Also revisit pairs you already labelled.")] = False,
 ) -> None:
-    """Verify gold pairs side by side: [m]atch, [n]on-match, [u]nsure, [s]kip, [q]uit."""
+    """Label the human-verification sample blind: m match, n non-match, u unsure, s skip, q quit."""
     with get_engine().connect() as conn:
         label.run(conn, show_suggestion, relabel)
 
@@ -190,7 +236,7 @@ def report_quality(region: Annotated[str | None, typer.Option(help="Region name.
     """Coverage, flags, conflicts, freshness, quality score and top data gaps."""
     reg = load_region(region, get_settings())
     with get_engine().connect() as conn:
-        typer.echo(reports.write("quality.md", reports.quality_report(conn, reg.name)))
+        typer.echo(write_report("quality.md", quality_report.quality_report(conn, reg.name)))
 
 
 @report_app.command("changes")
@@ -198,7 +244,7 @@ def report_changes(region: Annotated[str | None, typer.Option(help="Region name.
     """New, merged, retired and changed entities since the previous resolve run."""
     reg = load_region(region, get_settings())
     with get_engine().connect() as conn:
-        typer.echo(reports.write("changes.md", reports.changes_report(conn, reg.name)))
+        typer.echo(write_report("changes.md", quality_report.changes_report(conn, reg.name)))
 
 
 @app.command()
@@ -243,7 +289,7 @@ def report_tokens(region: Annotated[str | None, typer.Option(help="Region name."
     """Tokens per representation (raw HTML vs cleaned vs Markdown vs text) and documents."""
     reg = load_region(region, get_settings())
     with get_engine().connect() as conn:
-        typer.echo(reports.write("tokens.md", token_report.tokens_report(conn, reg.name)))
+        typer.echo(write_report("tokens.md", token_report.tokens_report(conn, reg.name)))
 
 
 @app.command()
@@ -259,7 +305,10 @@ def extract(
     kind: Annotated[str | None, typer.Option(help="web_bundle or ridb_description.")] = None,
     limit: Annotated[int | None, typer.Option(help="At most this many documents.")] = None,
     max_cost_usd: Annotated[
-        float | None, typer.Option(help="Hard stop: never spend more than this in one run.")
+        float | None,
+        typer.Option(
+            help="Hard stop: never spend more than this in one run (required unless replaying)."
+        ),
     ] = None,
     batch: Annotated[
         bool, typer.Option(help="Message Batches API for the cheap step (Anthropic, 50% off).")
@@ -275,6 +324,10 @@ def extract(
         setup = build_client(engine, settings, "record", provider)
         typer.echo(json.dumps(dry_run(engine, settings, setup, kind, limit), indent=2))
         return
+    if mode != "replay" and max_cost_usd is None:
+        raise typer.BadParameter(
+            "a run that can call the API needs --max-cost-usd (run --dry-run first for an estimate)"
+        )
     stats = extract_region(
         engine,
         settings,
@@ -324,7 +377,7 @@ def report_cost(region: Annotated[str | None, typer.Option(help="Region name.")]
     """Ledger totals, per-input cost, escalation and cache rates, Claude estimates, 1M pages."""
     reg = load_region(region, get_settings())
     with get_engine().connect() as conn:
-        typer.echo(reports.write("cost.md", cost_report.cost_report(conn, reg.name)))
+        typer.echo(write_report("cost.md", cost_report.cost_report(conn, reg.name)))
 
 
 @app.command()
@@ -362,7 +415,6 @@ def mcp(region: Annotated[str | None, typer.Option(help="Region name.")] = None)
 
     settings = get_settings()
     configure_logging(settings.log_level, settings.log_json, stderr=True)  # stdout is the protocol
-    logging.getLogger("elastic_transport").setLevel(logging.WARNING)  # one line per request
     name = load_region(region, settings).name
     server = build_server(
         get_engine(), Elasticsearch(settings.elasticsearch_url), name, alias_name(name)
@@ -387,6 +439,8 @@ Try (after `poi serve`, or `make demo` which starts it):
   {base}/campgrounds/{result["example_id"]}
   curl -X POST {base}/campgrounds/along-route -H 'content-type: application/json' \\
     -d '{{"route": [[-119.86, 37.70], [-119.59, 37.74], [-119.35, 37.87]], "buffer_km": 3}}'
+
+Same data as MCP tools for Claude: see "Use it from Claude (MCP)" in the README.
 """)
 
 

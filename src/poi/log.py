@@ -7,10 +7,15 @@ import sys
 
 import structlog
 
+# Third-party loggers that print one INFO line per request or per import.
+QUIET_LOGGERS = ("elastic_transport", "alembic.runtime.plugins")
+
 
 def configure_logging(level: str = "INFO", json: bool = False, stderr: bool = False) -> None:
     """`stderr=True` keeps stdout free for a protocol (the MCP stdio transport)."""
     logging.basicConfig(format="%(message)s", level=level.upper(), stream=sys.stderr)
+    for noisy in QUIET_LOGGERS:
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     renderer: structlog.typing.Processor = (
         structlog.processors.JSONRenderer() if json else structlog.dev.ConsoleRenderer()
     )

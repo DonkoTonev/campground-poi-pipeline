@@ -20,7 +20,7 @@ from shapely.geometry.base import BaseGeometry
 from poi.normalize.model import Flag, Severity
 from poi.settings import PROJECT_ROOT, Region
 
-ADMIN1_PATH = PROJECT_ROOT / "data" / "reference" / "admin1_us_ca.geojson"
+ADMIN1_PATH = PROJECT_ROOT / "data" / "reference" / "admin1_us_canada.geojson"
 STATE_TOLERANCE_DEG = 0.02  # ~2 km: boundaries are simplified, campgrounds sit on borders
 NA_LAT = (14.0, 84.0)
 NA_LON = (-170.0, -50.0)

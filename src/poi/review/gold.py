@@ -1,8 +1,9 @@
-"""ER gold set: a stratified sample of record pairs with *suggested* labels for a human.
+"""ER gold set: a stratified sample of record pairs, their labels and a human-verified sample.
 
-Pairs are stored by (source, source_id), so labels survive database rebuilds. Suggested
-labels come from the current model and are marked `verified: false`; metrics only ever use
-labels a person verified with `poi review label`.
+Pairs are stored by (source, source_id), so labels survive database rebuilds. Each pair has a
+drafted label with a rationale, written blind to the matcher (see `poi.review.drafts`); a
+random sample is labelled again by a person with `poi review label`, and `poi eval er`
+reports the agreement. The model's own suggestion is kept only for sampling and comparison.
 
 Strata (a pair can be in several):
 - score bins over all candidate pairs (so precision/recall are measured across the range);

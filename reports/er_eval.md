@@ -1,8 +1,8 @@
 # Entity resolution evaluation
 
-Region `sierra`, 2026-11-24, matching config `f65fb1b624`.
+Region `sierra`, 2026-11-25, matching config `f65fb1b624`.
 
-**Labels:** Claude-drafted labels (200 pairs, drafted blind to the matcher's score and decision), 50 human-verified, agreement pending (0/50 verified so far).
+**Labels:** Claude-drafted labels (200 pairs, drafted blind to the matcher's score and decision), 50 drawn for human verification (0 verified so far), agreement pending.
 
 Gold pairs with a match / non-match label: **189** (52 matches); pairs whose records are missing or no longer campgrounds: 0. The drafted labels were written from the two records alone, each with a one-line rationale; the human sample was drawn at random and labelled without seeing them. Intervals are Wilson 95%.
 

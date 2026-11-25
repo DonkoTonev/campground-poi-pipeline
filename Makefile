@@ -1,5 +1,11 @@
-# Targets are added as their milestone lands; see docs/PLAN.md.
+# `make help` lists the targets. Pipeline order: README.md, "Full run".
 UV := uv run
+
+.DEFAULT_GOAL := help
+
+.PHONY: help
+help:  ## list targets
+	@grep -hE '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | sed -E 's/:.*## /\t/' | expand -t 14
 
 .PHONY: setup up down migrate doctor ingest normalize match resolve crawl reduce index serve report eval fixtures test test-unit lint fmt typecheck
 
@@ -10,13 +16,13 @@ setup:  ## install deps + git hooks
 up:  ## start Postgres/PostGIS and Elasticsearch, wait until healthy
 	docker compose up -d --wait
 
-down:
+down:  ## stop the containers (data volumes are kept)
 	docker compose down
 
-migrate:
+migrate:  ## apply database migrations
 	$(UV) alembic upgrade head
 
-doctor:
+doctor:  ## check configuration without printing secrets
 	$(UV) poi doctor
 
 ingest:  ## fetch structured sources (raw store first) into source_records
@@ -49,28 +55,28 @@ report:  ## Markdown reports in reports/
 	$(UV) poi report tokens
 	$(UV) poi report cost
 
-eval:  ## metrics on verified gold labels; extraction eval replays recordings (reports/)
+eval:  ## ER precision/recall against the gold labels (reports/er_eval.md)
 	$(UV) poi eval er
 
 fixtures:  ## re-cut scrubbed test fixtures from the raw store
 	$(UV) python scripts/record_fixtures.py
 
-test:
+test:  ## all tests (integration tests skip without Postgres)
 	$(UV) pytest
 
-test-unit:
+test-unit:  ## unit tests only
 	$(UV) pytest -m "not integration"
 
-lint:
+lint:  ## ruff, format check, mypy strict
 	$(UV) ruff check .
 	$(UV) ruff format --check .
 	$(UV) mypy
 
-fmt:
+fmt:  ## apply ruff fixes and formatting
 	$(UV) ruff check --fix .
 	$(UV) ruff format .
 
-typecheck:
+typecheck:  ## mypy strict
 	$(UV) mypy
 
 .PHONY: publishable

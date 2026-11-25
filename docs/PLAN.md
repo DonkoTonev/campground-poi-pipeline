@@ -15,10 +15,10 @@ Website-extracted records later join matching as one more source (M7), and we me
 | M6 | Reduce + deterministic extraction; token metrics per representation | ✅ done |
 | M7 | LLM extraction: cost ladder, guardrails, ledger, dry-run → approval → run; extraction gold set + eval; ablation; extracted records join ER; coverage delta vs cost | 🟡 built and fixture-tested; live run waits for an API key |
 | M8 | Serving (small): ES index with alias swap; search, bbox, along-route, get-by-id (+ redirects), health | ✅ done |
-| M9 | Polish: demo snapshot, `make demo`, README / DESIGN / aws docs with measured numbers | ⏳ next |
+| M9 | Polish: demo snapshot, `make demo`, README / DESIGN / aws docs with measured numbers | 🟡 done except the numbers that wait for the live LLM run and the human label check |
 
-Stretch (only if time is left after M9): S1 embeddings, S2 LLM adjudication of gray-zone pairs,
-S3 MCP server, S4 PDF brochures, S5 induced selectors.
+Stretch: S1 embeddings and S3 MCP server are done (while M7 waits for an API key); S2 LLM
+adjudication of gray-zone pairs, S4 PDF brochures and S5 induced selectors are not started.
 
 ## Stretch checklist
 - [x] S3: MCP server (`poi mcp`, stdio) with `search_campgrounds`, `get_campground`, `along_route` over the API's query layer; integration tests through an in-process MCP client

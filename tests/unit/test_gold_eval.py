@@ -72,7 +72,7 @@ def test_agreement_statement(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     assert (agr["human_verified"], agr["agree"], agr["agreement"]) == (3, 2, 0.667)
     assert er.label_statement(agr) == (
         "Claude-drafted labels (4 pairs, drafted blind to the matcher's score and decision), "
-        "4 human-verified, agreement 67% (2/3)."
+        "3 of 4 human-verified so far, agreement 67% (2/3) (provisional)."
     )
     assert len(agr["disagreements"]) == 1
 
@@ -101,3 +101,32 @@ def test_map_link_shows_both_points() -> None:
     assert map_link(a, {"lat": None, "lon": None}).startswith(  # type: ignore[union-attr]
         "https://www.openstreetmap.org/?mlat=37.73940"
     )
+
+
+def test_import_drafts_validates_before_changing_anything(tmp_path: Path) -> None:
+    from poi.review import drafts
+
+    pairs = [_pair("1", "2"), _pair("3", "4")]
+    good = tmp_path / "labels_0.jsonl"
+    good.write_text(
+        '{"pair": 0, "label": "match", "rationale": "same recreation.gov id"}\n'
+        '{"pair": 1, "label": "non_match", "rationale": "Upper vs Lower"}\n'
+    )
+    bad = tmp_path / "labels_1.jsonl"
+    bad.write_text('{"pair": 1, "label": "maybe", "rationale": "x"}\n')
+    with pytest.raises(ValueError, match="label 'maybe'"):
+        drafts.import_drafts(pairs, [bad], "claude", force=False)
+    assert all(p.label is None for p in pairs)
+    assert drafts.import_drafts(pairs, [good], "claude", force=False) == 2
+    assert (pairs[0].label, pairs[0].labeled_by) == ("match", "claude")
+    with pytest.raises(ValueError, match="already have a drafted label"):
+        drafts.import_drafts(pairs, [good], "claude", force=False)
+
+
+def test_draw_sample_never_redraws() -> None:
+    from poi.review import drafts
+
+    pairs = [_pair(str(i), str(i + 100)) for i in range(10)]
+    assert len(drafts.draw_sample(pairs, 4, seed=1)) == 4
+    with pytest.raises(ValueError, match="already drawn"):
+        drafts.draw_sample(pairs, 4, seed=2)

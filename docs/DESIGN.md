@@ -87,7 +87,9 @@ similar names that blocking missed). All 200 pairs were then labelled by Claude 
 pass that saw only the two records and their distance, never the matcher's score or decision;
 each label has a one-line rationale (shared ids, distance, discriminator words) and is marked
 `labeled_by: claude`. A random 50 (fixed seed) are verified by a person with `poi review label`,
-which hides the drafted label, the rationale and the score bin. `poi eval er` reports
+which hides the drafted label, the rationale and the score bin. The steps are commands:
+`poi review export-blind`, `poi review import-drafts --by claude`, `poi review draw-sample`
+(seed 20261124). `poi eval er` reports
 precision and recall against the drafted labels and against the human sample, the agreement
 rate between the two, and every disagreement, with Wilson intervals. Drafted labels are
 not ground truth; the agreement rate says how far to trust them.

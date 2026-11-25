@@ -1,4 +1,4 @@
-"""Build data/reference/admin1_us_ca.geojson from Natural Earth admin-1 (public domain).
+"""Build data/reference/admin1_us_canada.geojson from Natural Earth admin-1 (public domain).
 
 Usage: uv run python scripts/build_admin1.py <ne_10m_admin_1_states_provinces.geojson>
 Source: https://www.naturalearthdata.com/ (10m cultural, admin 1 states/provinces).
@@ -16,7 +16,7 @@ from shapely.geometry import mapping, shape
 
 from poi.settings import PROJECT_ROOT
 
-OUT = PROJECT_ROOT / "data" / "reference" / "admin1_us_ca.geojson"
+OUT = PROJECT_ROOT / "data" / "reference" / "admin1_us_canada.geojson"
 TOLERANCE_DEG = 0.005
 
 

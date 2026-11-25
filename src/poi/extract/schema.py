@@ -41,17 +41,6 @@ Anchor = Literal[
     "columbus_day",
     "thanksgiving",
 ]
-KEY_FIELDS = (
-    "phone",
-    "email",
-    "price",
-    "season",
-    "status",
-    "num_sites",
-    "max_rv_length",
-    "amenities",
-    "reservable",
-)
 
 
 class Strict(BaseModel):

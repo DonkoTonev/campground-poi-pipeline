@@ -268,10 +268,3 @@ def changes_report(conn: Connection, region: str) -> str:
                 lines.append(f"- … and {len(items) - 25} more")
             lines.append("")
     return "\n".join(lines)
-
-
-def write(name: str, content: str) -> str:
-    REPORTS.mkdir(exist_ok=True)
-    path = REPORTS / name
-    path.write_text(content)
-    return str(path.relative_to(PROJECT_ROOT))

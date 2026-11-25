@@ -171,14 +171,18 @@ def agreement() -> dict[str, Any]:
 
 def label_statement(agr: dict[str, Any]) -> str:
     """The one sentence the README and the report must carry about where labels come from."""
-    if agr["agreement"] is None:
-        status = f"agreement pending ({agr['human_verified']}/{agr['sample_size']} verified so far)"
-    else:
-        status = f"agreement {agr['agreement']:.0%} ({agr['agree']}/{agr['human_verified']})"
-    return (
+    n, done = agr["sample_size"], agr["human_verified"]
+    drafted = (
         f"Claude-drafted labels ({agr['drafted']} pairs, drafted blind to the matcher's score "
-        f"and decision), {agr['sample_size']} human-verified, {status}."
+        "and decision)"
     )
+    if agr["agreement"] is None:
+        pending = f"{n} drawn for human verification ({done} verified so far)"
+        return f"{drafted}, {pending}, agreement pending."
+    agreement = f"agreement {agr['agreement']:.0%} ({agr['agree']}/{done})"
+    if done < n:
+        return f"{drafted}, {done} of {n} human-verified so far, {agreement} (provisional)."
+    return f"{drafted}, {n} human-verified, {agreement}."
 
 
 def evaluate(conn: Connection, region: str) -> dict[str, Any]:
