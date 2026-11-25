@@ -331,3 +331,55 @@ def test_estimate_prices_each_request_not_the_run_total() -> None:
     assert est["batch_cached"] == pytest.approx(est["sync_cached"] / 2, rel=0.2)
     strong = billed("anthropic", "claude-sonnet-5-5", Usage(9_000, ASSUMED_OUTPUT_TOKENS))
     assert est["escalation_reserve"] == pytest.approx(20 * strong, rel=1e-6)
+
+
+class _CountingClient:
+    provider = "anthropic"
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def extract(self, request: LLMRequest) -> LLMResponse:
+        self.calls += 1
+        return LLMResponse(
+            "anthropic", request.model, {}, "{}", Usage(10_000, 700), "end_turn", 1, "ok"
+        )
+
+    def count_tokens(self, request: LLMRequest) -> int:
+        return 10_000
+
+
+def test_budget_guard_stops_before_a_call_that_could_pass_the_cap() -> None:
+    from poi.extract.llm.budget import BudgetExceededError, BudgetGuard
+
+    inner = _CountingClient()
+
+    def price(model: str, usage: Usage) -> float:
+        return billed("anthropic", model, usage)
+
+    one_call = price("claude-haiku-5-5", Usage(10_000, 700))
+    worst = price("claude-haiku-5-5", Usage(10_000, 4096))
+    guard = BudgetGuard(inner, limit_usd=2 * one_call + worst, price=price)
+    for _ in range(3):
+        guard.extract(_request())
+    with pytest.raises(BudgetExceededError, match="cap"):
+        guard.extract(_request())
+    assert inner.calls == 3  # the refused call was never sent
+    assert guard.spent_usd == pytest.approx(3 * one_call)
+
+
+def test_eval_dry_run_prices_unrecorded_requests_only(tmp_path: Path) -> None:
+    from poi.eval import extraction as ev
+    from poi.extract.stage import Setup
+
+    client = ReplayClient("anthropic", _CountingClient(), "record", tmp_path)
+    setup = Setup(client, "anthropic", Models("claude-haiku-5-5", "claude-sonnet-5-5"), 4096, 0.25)
+    plan = ev.dry_run(setup, "extraction")
+    n = plan["cases"]
+    assert plan["requests_planned"] == 2 * n and plan["already_recorded"] == 0
+    assert plan["estimate_usd"]["escalation_reserve"] > plan["estimate_usd"]["calls"]
+    first = ev.load_cases()[0]
+    cheap, _ = ev.ladder_requests(setup, first)
+    client.extract(cheap)  # now recorded: free in the next plan
+    assert ev.dry_run(setup, "extraction")["already_recorded"] == 1
+    assert ev.dry_run(setup, "ablation")["requests_planned"] == 4 * n

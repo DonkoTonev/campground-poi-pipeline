@@ -126,3 +126,16 @@ def test_ridb_description_document() -> None:
     assert "[R1]" in doc and "**Flush toilets**" in doc and "14 days" in doc
     assert "## Fees" not in doc
     assert ridb.document({"FacilityID": "1", "FacilityDescription": " "}) is None
+
+
+def test_markdown_keeps_a_leading_h1_and_the_title() -> None:
+    from poi.reduce.html import represent
+
+    html = (
+        "<html><head><title>Granite Flat | Example Forest</title></head><body>"
+        "<h1>Granite Flat Campground</h1><p>A primitive campground with 18 sites. "
+        "There are no hookups. Showers are not available.</p></body></html>"
+    )
+    md = represent(html).markdown
+    assert md.count("Granite Flat Campground") == 1  # kept or restored, never doubled
+    assert "Page title: Granite Flat | Example Forest" in md

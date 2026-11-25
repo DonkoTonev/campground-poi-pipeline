@@ -82,7 +82,22 @@ def to_markdown(raw_html: str, cleaned_html: str) -> str:
     main = collapse(main or "")
     if len(main) < MIN_MARKDOWN_SHARE * len(full):
         return full
-    return main + salvage(full, main)
+    return headline(raw_html, main) + main + salvage(full, main)
+
+
+def headline(raw_html: str, main: str) -> str:
+    """The page title and first H1 when main-content extraction dropped them: trafilatura
+    treats a leading H1 as the page title and removes it, and that H1 is usually the
+    campground's name (found by the extraction ablation: "Granite Flat Campground" vanished)."""
+    tree = LexborHTMLParser(raw_html)
+    lines = []
+    title = tree.css_first("title")
+    h1 = tree.css_first("h1")
+    if h1 is not None and (text := collapse(h1.text())) and text not in main:
+        lines.append(f"# {text}")
+    if title is not None and (text := collapse(title.text())) and text not in main:
+        lines.append(f"Page title: {text}")
+    return "\n\n".join(lines) + "\n\n" if lines else ""
 
 
 def salvage(full: str, main: str) -> str:
