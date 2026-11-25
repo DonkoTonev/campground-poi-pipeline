@@ -6,7 +6,7 @@
 |---|---|
 | page kind accuracy | 100% |
 | campground recall | 100% |
-| field accuracy | 94% (46 fields) |
+| field accuracy | 96% (46 fields) |
 | empty-field rate | 4% |
 | hallucination / privacy bait violations | 0 |
 | escalations to the strong model | 1 of 18 |
@@ -21,7 +21,7 @@
 | amenities | 5/5 |
 | currency | 2/2 |
 | email | 1/1 |
-| max_rv_length | 0/1 |
+| max_rv_length | 1/1 |
 | name | 17/17 |
 | num_sites | 5/5 |
 | phone | 1/1 |
@@ -36,4 +36,3 @@
 
 - cad_french: price_min expected 32, got None
 - cad_french: price_max expected 48, got None
-- rv_length_meters: max_rv_length expected {'value': 12, 'unit': 'm'}, got {'value': 12.0, 'unit': 'm'}

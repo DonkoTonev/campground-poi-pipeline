@@ -45,6 +45,6 @@ Disagreements between the drafted and the human label:
 - osm:Pines Campground vs ridb:Pines Stanislaus (score -3; name -4, distance +2, prior -1.5, category +0.5)
 - osm:Forks Campground vs ridb:Forks Campground (Sierra) (score 0.5; distance +3, name -1.5, prior -1.5, category +0.5)
 - osm:Silver Lake Campground vs ridb:Silver Lake Campground June Lake (CA) (score 0.5; distance +3, name -1.5, prior -1.5, category +0.5)
-- osm:Crags Campground vs ridb:Crags Campground (score 3; name +5, prior -1.5, distance -1, category +0.5)
 - osm:Buckeye vs ridb:Buckeye (score 3; name +5, prior -1.5, distance -1, category +0.5)
 - osm:Obsidian Campground vs ridb:Obsidian (score 5; name +5, prior -1.5, distance +1, category +0.5)
+- osm:Crane Flat Campground vs nps:Crane Flat Campground (score 7; name +5, distance +3, prior -1.5, category +0.5)

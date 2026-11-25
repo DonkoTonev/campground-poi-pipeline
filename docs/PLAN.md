@@ -13,9 +13,9 @@ Website-extracted records later join matching as one more source (M7), and we me
 | M4 | Golden records: survivorship, stable IDs + redirects, overrides, quality score; quality / changes reports | ✅ done |
 | M5 | Responsible crawler seeded from M1 records; crawl stats | ✅ done |
 | M6 | Reduce + deterministic extraction; token metrics per representation | ✅ done |
-| M7 | LLM extraction: cost ladder, guardrails, ledger, dry-run → approval → run; extraction gold set + eval; ablation; extracted records join ER; coverage delta vs cost | 🟡 built and fixture-tested; live run waits for an API key |
+| M7 | LLM extraction: cost ladder, guardrails, ledger, dry-run → approval → run; extraction gold set + eval; ablation; extracted records join ER; coverage delta vs cost | ✅ done: live run 2026-11-25 ($0.36 in total, ledger) |
 | M8 | Serving (small): ES index with alias swap; search, bbox, along-route, get-by-id (+ redirects), health | ✅ done |
-| M9 | Polish: demo snapshot, `make demo`, README / DESIGN / aws docs with measured numbers | 🟡 done except the numbers that wait for the live LLM run and the human label check |
+| M9 | Polish: demo snapshot, `make demo`, README / DESIGN / aws docs with measured numbers | 🟡 done except the ER label agreement rate (waits for human verification) |
 
 Stretch: S1 embeddings and S3 MCP server are done (while M7 waits for an API key); S2 LLM
 adjudication of gray-zone pairs, S4 PDF brochures and S5 induced selectors are not started.
@@ -100,15 +100,15 @@ adjudication of gray-zone pairs, S4 PDF brochures and S5 induced selectors are n
 
 ## M7 checklist
 - [x] Extraction contract (pydantic, lean, tri-state amenities, evidence), versioned prompt with injection defense
-- [x] Provider-agnostic LLM layer: Claude adapter (structured outputs, prompt caching, Message Batches, Haiku → Sonnet), optional Gemini adapter
+- [x] Provider-agnostic LLM layer: Claude adapter (JSON schema in the cached prompt, local validation, prompt caching, Message Batches, Haiku → Sonnet), optional Gemini adapter
 - [x] Ladder: skip unchanged → deterministic facts → cheap model → one escalation → review
 - [x] Grounding (values and quotes must be in the input), computed confidence, hallucination rate
 - [x] `llm_calls` ledger, `--dry-run` (count_tokens), `--max-cost-usd` hard stop, `--batch`, record/replay
 - [x] Extracted campgrounds join normalize → match → resolve as `web` / `ridb_description`
 - [x] Synthetic extraction gold set (18 edge cases), `poi eval extraction`, `poi eval ablation`, `poi report cost`
 - [x] Fixture tests through the real Anthropic SDK (mock transport), end-to-end batch test
-- [ ] Dry run with the API key → approval → live run
-- [ ] Live evaluation and ablation; coverage delta per input with its cost in the README
+- [x] Dry run with the API key → approval → live run (first attempt: grammar too large, fixed; failed calls cost $0)
+- [x] Eval and ablation with `--dry-run` and a BudgetGuard cap; coverage delta per input with its cost in the README
 
 ## M8 checklist
 - [x] Versioned Elasticsearch index with atomic alias swap (one previous version kept for rollback)
@@ -123,4 +123,5 @@ adjudication of gray-zone pairs, S4 PDF brochures and S5 induced selectors are n
 - [x] README with architecture, quick start, measured results, edge cases, decisions, limitations
 - [x] DESIGN: cost ladder, entity resolution and the 200 m question, survivorship, 1M POIs
 - [x] docs/aws.md production sketch
-- [ ] Live LLM numbers (waits for the API key) and the ER label agreement rate (waits for human verification)
+- [x] Live LLM numbers in README and reports
+- [ ] ER label agreement rate (waits for human verification)

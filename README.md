@@ -8,11 +8,9 @@ field-level provenance, measures its own quality and cost, and serves the result
 search and an API. Depth and correctness over breadth: one region (Yosemite and the Eastern
 Sierra), where federal, state, county and private campgrounds sit close together.
 
-> **Status.** Everything except LLM extraction is built and measured on real data. The LLM
-> extraction stage is **implemented and tested with fixtures, but has not been run live yet**,
-> so this README reports no extraction accuracy or cost; those sections fill in after the first
-> live run. Entity-resolution labels are Claude-drafted; the human check of a 50-pair sample is
-> pending. Progress: [docs/PLAN.md](docs/PLAN.md).
+> **Status.** Built end to end and measured on real data, including one live LLM extraction
+> run (Claude Haiku 5.5, escalating to Sonnet 5.5) on 2026-11-25. Entity-resolution labels are
+> Claude-drafted; the human check of a 50-pair sample is pending. Progress: [docs/PLAN.md](docs/PLAN.md).
 
 ## Architecture
 
@@ -118,16 +116,20 @@ RIDB's offset pagination silently skips facilities (CA: 1,936 rows, 1,887 unique
 adapter combines three listings: the state listing alone found 68 of the 82 located
 campgrounds.
 
-**Normalization.** 379 of 394 records are campgrounds; 15 are excluded and flagged (6 organized
+**Normalization** (structured sources). 379 of 394 records are campgrounds; 15 are excluded and flagged (6 organized
 camps, 5 cabin-only lodges, 1 day-use area, 3 aggregate pseudo-facilities). 47 ALL-CAPS names
 re-cased, 21 P.O.-box addresses, 7 records with (0,0) coordinates, 2 low-precision points and
 2 records whose claimed state contradicts their point, all as flags, none fixed silently.
 65 records have no name (unnamed OSM sites); 78% of entities have one.
 
-**Entity resolution.** 379 campground records → **300 entities**: 79 duplicates merged,
-15 entities confirmed by all three sources, 45 by two; 36 pairs in the review queue; 5 group or
-horse areas attached to a parent campground. Upper, Lower and North Pines (within ~300 m) stay
-three entities, each confirmed by OSM, RIDB and NPS.
+**Entity resolution.** The structured sources alone: 379 campground records → 300 entities
+(79 duplicates merged, 60 entities confirmed by more than one source). With the 104 records the
+LLM extracted (19 from websites, 85 from RIDB descriptions) joining the same matching: 483
+records → **304 entities**, 97 confirmed by more than one source; 78 pairs in the review queue;
+5 group or horse areas attached to a parent campground. The extracted records also merged 3
+pairs the structured sources had kept apart (Crags, Coldwater, Sweetwater: the same campground
+in OSM and RIDB, bridged by its RIDB description; checked by hand). Upper, Lower and North Pines
+(within ~300 m) stay three entities.
 
 Labels: Claude-drafted labels, 50 drawn for human verification (0 verified so far),
 agreement pending.
@@ -147,14 +149,15 @@ changed no decision, as a feature they traded 2 found matches for 2 false merges
 [reports/er_embeddings.md](reports/er_embeddings.md)).
 
 **Golden records.** Each field is chosen by per-field source trust plus corroboration, with
-every alternative and its provenance kept. Mean quality score: 0.58 for single-source
-entities, 0.75 for two sources, 0.99 for three. Conflicts flagged instead of guessed:
+every alternative and its provenance kept. Mean quality score: 0.57 for single-source
+entities, 0.80 for two sources, 0.89 for three, 0.98 for four. Conflicts flagged instead of guessed:
 RIDB's Crane Flat and Wawona points are 3–4 km from where OSM and NPS put them; OSM and NPS
 disagree on dump stations at two Pines campgrounds.
 
-**Data gaps** ([reports/quality.md](reports/quality.md)): season dates are known for 5% of
-entities, and the breakdown says where to get the rest: 100% of NPS-backed campgrounds have
-them, 0% of the 69 Forest Service campgrounds and of the 215 OSM-only ones.
+**Data gaps** ([reports/quality.md](reports/quality.md)): even after extraction, season dates
+are known for 11% of entities: all NPS-backed campgrounds have them, 6% of the Forest Service
+ones and 6% of the 219 OSM-only ones. OSM-only campgrounds have no website to read, and the
+Forest Service blocks identified crawlers, so the report names the next source for each gap.
 
 **Crawling** (stats of the crawl run in the `runs` table). 121 candidate URLs → 78 crawlable seeds after screening (30 on API domains,
 10 booking engines, 2 aggregators, 1 unofficial site skipped). 15 official sites crawled
@@ -163,25 +166,62 @@ identified crawler with a block page: the crawler stopped after one request and 
 around it. The same Forest Service descriptions arrive through the RIDB API, which is used as
 a separate extraction input (`ridb_description`). No page needed a headless browser.
 
-**Reduction** ([reports/tokens.md](reports/tokens.md)), no LLM involved, token counts estimated
-as bytes/4 until calibrated with the API's `count_tokens`:
+**Reduction on real crawled pages** ([reports/tokens.md](reports/tokens.md)), no LLM involved.
+Token counts are bytes/4 estimates; the ratios between representations are what matters
+here:
 
 | Representation | Tokens per page | Share of raw HTML |
 |---|---|---|
 | raw HTML | 36,437 | 100% |
 | cleaned HTML | 2,133 | 5.9% |
-| Markdown + salvaged facts | 947 | 2.6% |
-| plain text | 927 | 2.5% |
+| Markdown + salvaged facts | 963 | 2.6% |
+| plain text | 943 | 2.6% |
 
 On the first reduce run, before fact salvage existed, main-content extraction alone kept only
 58% of distinct phone numbers (they live in headers and footers; that run predates the
 report); a fact-salvage pass brings it to 97% for prices and phones and 96% for months, for
-about 7% more tokens. The LLM inputs are 15 website bundles (about 4,300 tokens each) and
-85 RIDB description documents (about 760 tokens each).
+about 7% more tokens. **On real pages, the Markdown the model reads is about 2.6% of the raw
+HTML.** The LLM inputs are 15 website bundles and 85 RIDB description documents. The API's
+`count_tokens` shows the bytes/4 estimate is low for this content: about 6,450 real tokens per
+bundle against 4,370 estimated (1.48×), and 1,050 against 760 per RIDB description (1.38×),
+before the fixed prompt (instructions and schema, 4,097 tokens, cached after the first call).
 
-**LLM extraction.** Implemented and tested with fixtures, **not yet run live**: no accuracy,
-cost, cache-hit or escalation numbers yet. [reports/cost.md](reports/cost.md) says the same
-until a live run fills it.
+**LLM extraction** (live run, 2026-11-25; [reports/cost.md](reports/cost.md)). 100 documents,
+Haiku first, Sonnet when the output fails validation or grounding:
+
+| | RIDB descriptions | Website bundles | All |
+|---|---|---|---|
+| documents | 85 | 15 | 100 |
+| finished by Haiku | 71 | 12 | 83 |
+| escalated to Sonnet | 14 | 3 | 17 |
+| sent to human review | 5 | 1 | 6 |
+| billed (current extractions) | $0.117 | $0.086 | **$0.20** |
+
+That is about $2 per 1,000 extracted campgrounds (104 extracted) at list prices with prompt
+caching (60% of input tokens were cache reads) and synchronous calls; the Batch API would halve
+it. Every value is grounded in the input text; values that are not are dropped, and documents
+with too many of them go to review (mean ungrounded share there 66–80%, 0–0.6% in accepted
+ones). What the extraction added to the golden records (share of entities with a value, before
+→ after): season dates 5% → 11%, price 5% → 9%, phone 22% → 27%, drinking water 12% → 28%,
+showers 8% → 15%. In the chosen values, websites supplied 14 seasons, 10 prices and 17 phones;
+RIDB descriptions 4, 1 and 3; 76% of RIDB description records state whether there is
+drinking water. All extraction spending so far, including the evaluation runs and a first attempt
+that failed: $0.36 (ledger).
+
+**Extraction accuracy** ([reports/extraction_eval.md](reports/extraction_eval.md)) on 18
+synthetic gold pages, one per edge case: page kind 100%, campground recall 100%, field accuracy
+96% (44 of 46 fields; the misses are both prices on the French/CAD page), 0 violations on the
+hallucination, prompt-injection and personal-name bait, 1 escalation. Real-page accuracy is not
+measured: real-page gold labels would contain third-party content.
+
+**Representation ablation on synthetic pages** ([reports/ablation.md](reports/ablation.md)),
+Haiku only, same 18 pages as raw HTML, cleaned HTML, Markdown and plain text: same field
+accuracy (96%) for all four, Markdown with about 15% fewer input tokens than raw HTML (5,010
+vs 5,876 per page, instructions included). **This 15% is not the real-page saving:** the
+synthetic pages are a few hundred bytes of clean HTML, and most of each request is the fixed
+prompt. On real crawled pages the input shrinks to about 2.6% of raw HTML (Reduction, above).
+The ablation found a bug first: Markdown dropped a page's leading H1, usually the campground's
+name (field accuracy 52% vs 94% for raw HTML); fixed before the numbers above.
 
 **Serving** (search and map from Elasticsearch, along-route and detail from PostGIS).
 Typo-tolerant search ("tuolume medows" finds Tuolumne Meadows), filters by
@@ -279,19 +319,18 @@ Production sketch on AWS: [docs/aws.md](docs/aws.md).
 
 ## Limitations and next steps
 
-- Run the LLM stage live (dry run first) and report accuracy, cost per page and per 1,000 POIs,
-  cache-hit and escalation rates, the representation ablation, and how much season and amenity
-  coverage each input adds.
 - Finish the human check of the 50-pair ER sample and report the agreement rate; then decide
   the merge threshold. Pair scores alone on the drafted labels (before clustering, so recall
   differs from the 0.87 above): at 4, the current setting, precision 1.00 / recall 0.88; at 2,
   precision 0.96 / recall 0.92.
 - One region; Forest Service websites are blocked for identified crawlers, so their facts come
   only from RIDB descriptions.
-- Token counts in the reduction report are estimates until calibrated with `count_tokens`.
-- [reports/changes.md](reports/changes.md) compares the last two resolve runs, and nothing
-  changed between them, so it shows zeros; creates, merges with redirects and retirements are
-  covered by the resolve tests and will show up once a source changes.
+- Token counts in the reduction report are bytes/4 estimates; `count_tokens` shows they are
+  about 1.4–1.5× low for this content (see LLM extraction). The ratios between representations
+  hold.
+- The constrained-output mode of the API cannot compile the extraction schema (60 optional
+  fields), so the schema travels in the prompt and every reply is validated locally; 11 of 135
+  live replies failed validation and were escalated.
 - Some stage functions (`resolve_region`, the report builders) are long; they read top to
   bottom as one stage each, but would be split before the code grows further.
 - Real-page extraction gold labels are not committed (third-party content); the committed gold

@@ -217,8 +217,20 @@ the API's free `count_tokens` endpoint. Numbers: [reports/tokens.md](../reports/
 
 ## LLM extraction: the cost ladder
 
-Status: implemented and tested with fixtures through the real Anthropic SDK (a mock
-transport, so the tests check exactly what would be sent); not run live yet.
+Status: tested with fixtures through the real Anthropic SDK (a mock transport, so the tests
+check exactly what would be sent) and run live once on 2026-11-25 (results in the README and
+reports/cost.md).
+
+What the live run taught, which the fixtures could not: the first attempt failed every call
+with 400 "compiled grammar is too large". Constrained decoding (`output_config.format`) allows
+at most 24 optional and 16 union-typed parameters, and the extraction contract has about 60
+optional fields. Making them required would force the model to write every field for every
+campground, and output tokens cost 5x input, so instead the schema (without null branches) is
+part of the cached system prompt and every reply is validated locally against the same
+pydantic model; an invalid reply escalates like any other failure. The failed calls cost
+nothing, and the ledger now keeps each call's error. The ablation then found that Markdown
+conversion dropped a leading H1 (usually the campground's name); the reducer now restores the
+H1 and the page title when main-content extraction loses them.
 
 Every document goes down a ladder; each step is cheaper than the next, and every extracted
 value records which step produced it:
@@ -227,8 +239,8 @@ value records which step produced it:
 1. **Deterministic.** JSON-LD/microdata, `tel:`/`mailto:` links and `<address>` are found
    without a model; they fill gaps (a single unambiguous phone) and cross-check the model.
 2. **Reduce.** Markdown with salvaged facts, boilerplate removed, one capped bundle per site.
-3. **Cheap model.** Claude Haiku with structured outputs (`output_config.format`, schema with
-   `additionalProperties: false`), thinking off, the static instructions as a cached prefix.
+3. **Cheap model.** Claude Haiku, thinking off, instructions and JSON schema as one cached
+   prefix, the reply validated locally against the pydantic contract.
 4. **Escalate once** to Claude Sonnet when the output is invalid, refused, truncated, or more
    than a quarter of its checkable values are ungrounded.
 5. **Human review** when the strong model's answer is still not good enough.
