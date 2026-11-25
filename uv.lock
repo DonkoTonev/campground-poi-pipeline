@@ -344,7 +344,6 @@ dependencies = [
     { name = "elasticsearch" },
     { name = "extruct" },
     { name = "fastapi" },
-    { name = "google-genai" },
     { name = "httpx" },
     { name = "markdownify" },
     { name = "mcp" },
@@ -371,6 +370,9 @@ dependencies = [
 embeddings = [
     { name = "fastembed" },
 ]
+gemini = [
+    { name = "google-genai" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -394,7 +396,7 @@ requires-dist = [
     { name = "extruct", specifier = ">=0.18.0" },
     { name = "fastapi", specifier = ">=0.165.0" },
     { name = "fastembed", marker = "extra == 'embeddings'", specifier = ">=0.9.1" },
-    { name = "google-genai", specifier = ">=1.60" },
+    { name = "google-genai", marker = "extra == 'gemini'", specifier = ">=1.60" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "markdownify", specifier = ">=1.2.4" },
     { name = "mcp", specifier = ">=2.3,<3" },
@@ -416,7 +418,7 @@ requires-dist = [
     { name = "typer", specifier = ">=0.29.2" },
     { name = "uvicorn", specifier = ">=0.54.0" },
 ]
-provides-extras = ["embeddings"]
+provides-extras = ["gemini", "embeddings"]
 
 [package.metadata.requires-dev]
 dev = [

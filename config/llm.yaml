@@ -1,5 +1,6 @@
 # LLM providers for extraction. Claude is the primary provider: Haiku extracts, Sonnet handles
-# the escalations. The Gemini adapter is an optional alternative (`--provider gemini`).
+# the escalations. The Gemini adapter is an optional alternative
+# (`uv sync --extra gemini`, then `--provider gemini`).
 provider: anthropic
 max_output_tokens: 4096
 escalation:

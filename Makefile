@@ -9,8 +9,8 @@ help:  ## list targets
 
 .PHONY: setup up down migrate doctor ingest normalize match resolve crawl reduce index serve report eval fixtures test test-unit lint fmt typecheck
 
-setup:  ## install deps + git hooks
-	uv sync
+setup:  ## install deps (with the optional Gemini adapter, as in CI) + git hooks
+	uv sync --extra gemini
 	$(UV) pre-commit install  # installs pre-commit and pre-push hooks
 
 up:  ## start Postgres/PostGIS and Elasticsearch, wait until healthy

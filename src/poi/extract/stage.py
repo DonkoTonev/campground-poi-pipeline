@@ -74,7 +74,12 @@ def build_client(
     inner: LLMClient | None = None
     if mode != "replay":
         if provider == "gemini":
-            from google import genai
+            try:
+                from google import genai
+            except ImportError as exc:
+                raise RuntimeError(
+                    "the Gemini provider needs the optional extra: uv sync --extra gemini"
+                ) from exc
 
             from poi.extract.llm.gemini import GeminiClient
 
