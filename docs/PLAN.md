@@ -66,7 +66,7 @@ adjudication of gray-zone pairs, S4 PDF brochures and S5 induced selectors are n
 - [x] All 200 pairs labelled by Claude blind to score and decision, with rationales (`labeled_by: claude`)
 - [x] Random 50 drawn for human verification; `poi eval er` reports P/R, agreement, disagreements
 - [x] Human verification of the 50 (`poi review label`): raw agreement 56% (28/50), in README
-- [ ] Adjudicate the 22 disagreements (`poi review adjudicate`); post-adjudication numbers next to the raw 56%
+- [x] Adjudicated the 22 disagreements: final sides with the draft on 16, the person on 5, neither on 1; README shows both
 - [ ] Threshold decision after verification (sweep in reports/er_eval.md)
 
 ## M4 checklist

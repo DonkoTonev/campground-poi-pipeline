@@ -2,7 +2,7 @@
 
 Region `sierra`, 2026-11-25, matching config `f65fb1b624`.
 
-**Labels:** Claude-drafted labels (200 pairs, drafted blind to the matcher's score and decision), 50 human-verified, agreement 56% (28/50). Adjudication of the 22 disagreements pending.
+**Labels:** Claude-drafted labels (200 pairs, drafted blind to the matcher's score and decision), 50 human-verified, agreement 56% (28/50). After adjudicating 22 of the 22 disagreements, the final label sides with the draft on 16 and with the human label on 5, neither on 1.
 
 Gold pairs with a match / non-match label: **189** (52 matches); pairs whose records are missing or no longer campgrounds: 0. The drafted labels were written from the two records alone, each with a one-line rationale; the human sample was drawn at random and labelled without seeing them. Intervals are Wilson 95%.
 
@@ -79,32 +79,32 @@ disagreement and never changes the drafted or the human one.
 |---|---|---|---|---|---|---|---|---|---|---|
 | drafted labels (all pairs) | 189 | 1.000 | [0.92, 1.00] | 0.865 | [0.75, 0.93] | 0.928 | 45 | 0 | 7 | 137 |
 | human labels (sample, before adjudication) | 42 | 1.000 | [0.80, 1.00] | 0.500 | [0.33, 0.67] | 0.667 | 15 | 0 | 15 | 12 |
-| final labels (sample, after adjudication) | 28 | 1.000 | [0.80, 1.00] | 0.938 | [0.72, 0.99] | 0.968 | 15 | 0 | 1 | 12 |
-| drafted + adjudicated corrections (all pairs) | 189 | 1.000 | [0.92, 1.00] | 0.865 | [0.75, 0.93] | 0.928 | 45 | 0 | 7 | 137 |
+| final labels (sample, after adjudication) | 47 | 1.000 | [0.80, 1.00] | 0.750 | [0.53, 0.89] | 0.857 | 15 | 0 | 5 | 27 |
+| drafted + adjudicated corrections (all pairs) | 189 | 1.000 | [0.92, 1.00] | 0.804 | [0.68, 0.89] | 0.891 | 45 | 0 | 11 | 133 |
 
 Disagreement kinds (draft -> human): non_match -> match: 11, non_match -> unsure: 8, unsure -> match: 3
 
 | A | B | draft | rationale | human | final | why |
 |---|---|---|---|---|---|---|
-| B Circle | Meadowview Campground | non_match | B Circle loop node vs Meadowview Campground; different names | unsure | open |  |
-| Bridalveil Creek Campground | Bridalveil Creek Horse Camp | non_match | Bridalveil Creek Campground vs Horse Camp; horse vs family camp | match | open |  |
-| Lake George Tract | Lake Mary Tract | non_match | Lake George Tract vs Lake Mary Tract; different names | match | open |  |
-| Lower Lee Vining Campground | Cattleguard Campground | non_match | Lower Lee Vining vs Cattleguard; different names | unsure | open |  |
-| Upper Pines Campground | North Pines Campground | non_match | Upper Pines vs North Pines; different NPS and recgov ids | match | open |  |
-| Soda Springs Campground | Soda Springs Campground | non_match | Same name but 41 km apart; different places | match | open |  |
-| Wawona Campground | Wawona Horse Campsites | non_match | Two different RIDB ids; Wawona vs Wawona Horse Campsites | match | open |  |
-| Granite Creek Campground | Green Creek Campground | non_match | Granite Creek vs Green Creek; different names, 63 km | unsure | open |  |
-| Pumice Flat Campground | Soda Springs Campground | non_match | Pumice Flat vs Soda Springs; different names | match | open |  |
-| Kamook Staging Area | (unnamed) | unsure | Kamook Staging Area vs unnamed node 1.6 km away; nothing else shared | match | open |  |
-| D Circle | Pinecrest Campground | non_match | D Circle loop node vs Pinecrest Campground; lettered loop presented separately, 1.1 km | unsure | open |  |
-| Minaret Falls Campground | Soda Springs Campground | non_match | Minaret Falls vs Soda Springs: different names, 1.6 km | unsure | open |  |
-| Lake Mary Tract | Twin Lakes Campground | non_match | Lake Mary Tract vs Twin Lakes Campground: different names, 1.8 km | match | open |  |
-| Crags Campground | Robinson Creek South | non_match | Crags Campground vs Robinson Creek South: different names | match | open |  |
-| Agnew Meadows Horse Campground | Agnew Meadows Campground | non_match | Horse campground vs family campground of same base name Agnew Meadows | match | open |  |
-| D Circle | C Circle | non_match | D Circle vs C Circle: different lettered loops | match | open |  |
-| (unnamed) | (unnamed) | unsure | Two unnamed backcountry nodes 73 m apart; nothing to confirm | match | open |  |
-| (unnamed) | (unnamed) | unsure | Two unnamed backcountry nodes 112 m apart; nothing to confirm | match | open |  |
-| Mammoth Pool | Placer Campground | non_match | Two different RIDB facility ids: Mammoth Pool vs Placer | unsure | open |  |
-| Goat Meadow Dispersed Campsite | Summerdale Campground | non_match | Goat Meadow Dispersed vs Summerdale Campground: different names/types | unsure | open |  |
-| (unnamed) | (unnamed) | non_match | Two unnamed point nodes 1.8 km apart; distinct locations | unsure | open |  |
-| Tuolumne Meadows Backpackers Campground | Tuolumne Meadows Campground | non_match | Backpackers Campground vs Tuolumne Meadows Campground: separate walk-in facility | match | open |  |
+| B Circle | Meadowview Campground | non_match | B Circle loop node vs Meadowview Campground; different names | unsure | non_match |  |
+| Bridalveil Creek Campground | Bridalveil Creek Horse Camp | non_match | Bridalveil Creek Campground vs Horse Camp; horse vs family camp | match | match |  |
+| Lake George Tract | Lake Mary Tract | non_match | Lake George Tract vs Lake Mary Tract; different names | match | non_match |  |
+| Lower Lee Vining Campground | Cattleguard Campground | non_match | Lower Lee Vining vs Cattleguard; different names | unsure | non_match |  |
+| Upper Pines Campground | North Pines Campground | non_match | Upper Pines vs North Pines; different NPS and recgov ids | match | non_match |  |
+| Soda Springs Campground | Soda Springs Campground | non_match | Same name but 41 km apart; different places | match | non_match |  |
+| Wawona Campground | Wawona Horse Campsites | non_match | Two different RIDB ids; Wawona vs Wawona Horse Campsites | match | non_match |  |
+| Granite Creek Campground | Green Creek Campground | non_match | Granite Creek vs Green Creek; different names, 63 km | unsure | non_match |  |
+| Pumice Flat Campground | Soda Springs Campground | non_match | Pumice Flat vs Soda Springs; different names | match | non_match |  |
+| Kamook Staging Area | (unnamed) | unsure | Kamook Staging Area vs unnamed node 1.6 km away; nothing else shared | match | non_match |  |
+| D Circle | Pinecrest Campground | non_match | D Circle loop node vs Pinecrest Campground; lettered loop presented separately, 1.1 km | unsure | non_match |  |
+| Minaret Falls Campground | Soda Springs Campground | non_match | Minaret Falls vs Soda Springs: different names, 1.6 km | unsure | non_match |  |
+| Lake Mary Tract | Twin Lakes Campground | non_match | Lake Mary Tract vs Twin Lakes Campground: different names, 1.8 km | match | non_match |  |
+| Crags Campground | Robinson Creek South | non_match | Crags Campground vs Robinson Creek South: different names | match | non_match |  |
+| Agnew Meadows Horse Campground | Agnew Meadows Campground | non_match | Horse campground vs family campground of same base name Agnew Meadows | match | match |  |
+| D Circle | C Circle | non_match | D Circle vs C Circle: different lettered loops | match | match |  |
+| (unnamed) | (unnamed) | unsure | Two unnamed backcountry nodes 73 m apart; nothing to confirm | match | unsure |  |
+| (unnamed) | (unnamed) | unsure | Two unnamed backcountry nodes 112 m apart; nothing to confirm | match | unsure |  |
+| Mammoth Pool | Placer Campground | non_match | Two different RIDB facility ids: Mammoth Pool vs Placer | unsure | unsure |  |
+| Goat Meadow Dispersed Campsite | Summerdale Campground | non_match | Goat Meadow Dispersed vs Summerdale Campground: different names/types | unsure | non_match |  |
+| (unnamed) | (unnamed) | non_match | Two unnamed point nodes 1.8 km apart; distinct locations | unsure | non_match |  |
+| Tuolumne Meadows Backpackers Campground | Tuolumne Meadows Campground | non_match | Backpackers Campground vs Tuolumne Meadows Campground: separate walk-in facility | match | match |  |

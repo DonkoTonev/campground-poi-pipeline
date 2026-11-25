@@ -10,8 +10,8 @@ Sierra), where federal, state, county and private campgrounds sit close together
 
 > **Status.** Built end to end and measured on real data, including one live LLM extraction
 > run (Claude Haiku 5.5, escalating to Sonnet 5.5) on 2026-11-25. Entity-resolution labels are
-> Claude-drafted; a person verified 50 of them with 56% agreement, and the disagreements are
-> being adjudicated. Progress: [docs/PLAN.md](docs/PLAN.md).
+> Claude-drafted; a person verified 50 of them (56% raw agreement) and adjudicated the 22
+> disagreements. Progress: [docs/PLAN.md](docs/PLAN.md).
 
 ## Architecture
 
@@ -134,31 +134,36 @@ in OSM and RIDB, bridged by its RIDB description; checked by hand). Upper, Lower
 (within ~300 m) stay three entities.
 
 Labels: Claude-drafted labels (200 pairs, drafted blind to the matcher's score and
-decision), 50 human-verified, **agreement 56% (28/50)**. That is low, and it is reported as
-measured. Of the 22 disagreements, 11 are draft non-match vs human match, 8 draft non-match vs
-human unsure, 3 draft unsure vs human match; the draft never said match where the person said
-otherwise. Part of it is an undefined question: the labelling screen did not say that "match"
-means the same real-world campground (one pin), so nearby or related facilities (a horse camp
-beside the family campground, lettered loops, cabin tracts) could reasonably be read as
-matches. The screen now states the definition. Each disagreement is being adjudicated with
-`poi review adjudicate`, which records a third, final label and keeps both originals; the
-post-adjudication numbers will be reported next to the raw 56%, not instead of it
-([reports/er_eval.md](reports/er_eval.md) lists all 22 with both labels and the rationale).
+decision), 50 human-verified, **agreement 56% (28/50)** before adjudication. All 22
+disagreements went one way: the person said match or unsure where the draft said non-match or
+unsure (11 non-match vs match, 8 non-match vs unsure, 3 unsure vs match). The labelling screen
+had not defined "match"; it now does (same real-world campground, one pin).
+
+After adjudication (`poi review adjudicate`, a third label; both originals are kept): the
+final label sides with the draft on 16 of the 22, with the person's first label on 5, and with
+neither on 1. Against the final labels the draft is right on 44 of 50 sample pairs (88%), the
+person's first labels on 33 of 50 (66%). Four of the five pairs settled as match are related
+facilities the matcher deliberately keeps as separate entities (two horse camps next to their
+family campground, two lettered loops, a backpackers' campground next to the main one), so the
+final labels count them as matches the matcher misses. [reports/er_eval.md](reports/er_eval.md)
+lists all 22 with the draft, its rationale, the first human label and the final label.
 
 Matcher precision and recall depend on which labels are taken as truth, so all are shown
-(counting a pair as merged when both records end up in one entity; 95% CIs in the report):
+(counting a pair as merged when both records end up in one entity; Wilson 95% CIs):
 
 | labels taken as truth | pairs | precision | recall |
 |---|---|---|---|
 | Claude-drafted (all decisive pairs) | 189 | 1.00 (0.92–1.00) | 0.87 (0.75–0.93) |
 | human, before adjudication (decisive sample pairs) | 42 | 1.00 (0.80–1.00) | 0.50 (0.33–0.67) |
-| after adjudication | pending | | |
+| **final, after adjudication** (decisive sample pairs) | 47 | **1.00 (0.80–1.00)** | **0.75 (0.53–0.89)** |
+| drafted, corrected by adjudication (all decisive pairs) | 189 | 1.00 (0.92–1.00) | 0.80 (0.68–0.89) |
 
-Against the drafted labels the 7 missed matches are name variants such as "Agnew Meadows
-Horse Campground" vs "Agnew Horse Camp", and one OSM campground that two RIDB ids both claim,
-which the never-merge-two-RIDB-ids constraint keeps apart. Against the human labels recall is
-0.50 because the matcher keeps apart most of the related-facility pairs the person marked as
-matches; which reading is right is what adjudication decides.
+No label set finds a false merge. The missed matches are name variants ("Agnew Meadows Horse
+Campground" vs "Agnew Horse Camp", a miss under every label set), one OSM campground that two
+RIDB ids both claim (the never-merge-two-RIDB-ids constraint keeps it apart), and, under the
+adjudicated labels, the related facilities above. Whether those should be one entity or a
+parent with children is a product decision; the matcher currently links some of them as
+sub-areas (Bridalveil Creek Horse Camp is a child of Bridalveil Creek Campground).
 
 Name embeddings (a local model: `uv sync --extra embeddings`, then `poi match --embeddings`)
 were tried as a candidate source and as a matching feature, and are off: as candidates they
@@ -337,11 +342,10 @@ Production sketch on AWS: [docs/aws.md](docs/aws.md).
 
 ## Limitations and next steps
 
-- Adjudicate the 22 ER label disagreements and report the post-adjudication numbers next to
-  the raw 56% agreement; then decide the merge threshold. Pair scores alone on the drafted
-  labels (before clustering, so recall
-  differs from the 0.87 above): at 4, the current setting, precision 1.00 / recall 0.88; at 2,
-  precision 0.96 / recall 0.92.
+- Decide whether related facilities (horse camps, loops, backpackers' sites) are one entity or
+  children of one, then the merge threshold. Pair scores alone on the drafted labels
+  (before clustering, so recall differs from the 0.87 above): at 4, the current setting,
+  precision 1.00 / recall 0.88; at 2, precision 0.96 / recall 0.92.
 - One region; Forest Service websites are blocked for identified crawlers, so their facts come
   only from RIDB descriptions.
 - Token counts in the reduction report are bytes/4 estimates; `count_tokens` shows they are
