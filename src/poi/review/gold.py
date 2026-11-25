@@ -48,6 +48,11 @@ class GoldPair:
     human_labeled_at: str | None = None
     human_note: str | None = None
     verified: bool = False  # True once a person labelled the pair
+    # Adjudication of a draft/human disagreement: a third label, never overwriting either.
+    final_label: str | None = None
+    final_note: str | None = None
+    final_by: str | None = None
+    final_at: str | None = None
 
     @property
     def key(self) -> tuple[str, str, str, str]:
@@ -191,3 +196,21 @@ def draw_human_sample(pairs: list[GoldPair], n: int, seed: int) -> list[GoldPair
     for pair in pairs:
         pair.human_sample = pair in chosen
     return chosen
+
+
+def mark_final(pair: GoldPair, label: str, note: str | None, by: str) -> None:
+    """The adjudicated label for a disagreement. The drafted and human labels stay as they
+    were, so the raw agreement can always be recomputed."""
+    pair.final_label, pair.final_note, pair.final_by = label, note, by
+    pair.final_at = datetime.now(UTC).isoformat(timespec="seconds")
+
+
+def disagrees(pair: GoldPair) -> bool:
+    return bool(pair.human_sample and pair.human_label and pair.label != pair.human_label)
+
+
+def final_label(pair: GoldPair) -> str | None:
+    """Sample pairs only: the agreed label, or the adjudicated one (None while pending)."""
+    if not pair.human_sample or not pair.human_label:
+        return None
+    return pair.final_label if disagrees(pair) else pair.label

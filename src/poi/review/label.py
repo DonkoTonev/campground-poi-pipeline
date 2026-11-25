@@ -32,6 +32,12 @@ FIELDS = (
     "months_open",
 )
 CHOICES = {"m": "match", "n": "non_match", "u": "unsure"}
+DEFINITION = (
+    "match = both records describe the SAME real-world campground (one pin on the map). "
+    "Nearby, related or same-area facilities (a horse camp next to the family campground, "
+    "a loop of a campground, a cabin tract) are non-match; use unsure when the records "
+    "cannot tell."
+)
 
 
 def record_row(conn: Connection, ref: dict[str, str]) -> dict[str, Any] | None:
@@ -134,6 +140,7 @@ def run(
         f"{len(todo)} pairs to review ({len(scope)} in scope, {len(pairs)} in gold set). "
         r"\[m]atch  \[n]on-match  \[u]nsure  \[s]kip  \[q]uit"
     )
+    console.print(f"[bold]{DEFINITION}[/bold]")
     done = 0
     for i, pair in enumerate(todo, start=1):
         a, b = record_row(conn, pair.a), record_row(conn, pair.b)

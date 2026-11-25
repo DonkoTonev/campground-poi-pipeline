@@ -191,6 +191,18 @@ def review_label(
         label.run(conn, show_suggestion, relabel)
 
 
+@review_app.command("adjudicate")
+def review_adjudicate(
+    by: Annotated[str, typer.Option(help="Who adjudicates (stored with the final label).")],
+    redo: Annotated[bool, typer.Option(help="Also revisit pairs already adjudicated.")] = False,
+) -> None:
+    """Decide draft/human disagreements with everything visible; stores a separate final label."""
+    from poi.review import adjudicate
+
+    with get_engine().connect() as conn:
+        adjudicate.run(conn, by, redo)
+
+
 @review_app.command("queue")
 def review_queue(region: Annotated[str | None, typer.Option(help="Region name.")] = None) -> None:
     """Decide gray-zone pairs and field conflicts; decisions go to data/overrides.yaml."""

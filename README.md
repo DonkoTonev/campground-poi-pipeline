@@ -10,7 +10,8 @@ Sierra), where federal, state, county and private campgrounds sit close together
 
 > **Status.** Built end to end and measured on real data, including one live LLM extraction
 > run (Claude Haiku 5.5, escalating to Sonnet 5.5) on 2026-11-25. Entity-resolution labels are
-> Claude-drafted; the human check of a 50-pair sample is pending. Progress: [docs/PLAN.md](docs/PLAN.md).
+> Claude-drafted; a person verified 50 of them with 56% agreement, and the disagreements are
+> being adjudicated. Progress: [docs/PLAN.md](docs/PLAN.md).
 
 ## Architecture
 
@@ -94,7 +95,8 @@ make serve
 ## Review and overrides
 
 Human-in-the-loop: `uv run poi review label` verifies the random sample of entity-resolution
-gold pairs;
+gold pairs blind, `uv run poi review adjudicate --by <name>` decides the pairs where that label
+and the draft disagree (a separate final label);
 `uv run poi review queue` decides gray-zone pairs and field conflicts and writes the decisions
 to `data/overrides.yaml`, which every run applies.
 
@@ -131,16 +133,32 @@ pairs the structured sources had kept apart (Crags, Coldwater, Sweetwater: the s
 in OSM and RIDB, bridged by its RIDB description; checked by hand). Upper, Lower and North Pines
 (within ~300 m) stay three entities.
 
-Labels: Claude-drafted labels, 50 drawn for human verification (0 verified so far),
-agreement pending.
-The 200 stratified gold pairs were labelled by Claude from the two records alone, blind to the
-matcher's score and decision; a person verifies a random 50 without seeing those labels
-([reports/er_eval.md](reports/er_eval.md)). Against the drafted labels (189 decisive pairs,
-52 matches), counting a pair as merged when both records end up in one entity: precision
-**1.00** (95% CI 0.92–1.00), recall **0.87** (0.75–0.93), 0 false merges,
-7 missed matches (name variants such as "Agnew Meadows Horse Campground" vs "Agnew Horse
-Camp", and one OSM campground that two RIDB ids both claim, which the never-merge-two-RIDB-ids
-constraint keeps apart).
+Labels: Claude-drafted labels (200 pairs, drafted blind to the matcher's score and
+decision), 50 human-verified, **agreement 56% (28/50)**. That is low, and it is reported as
+measured. Of the 22 disagreements, 11 are draft non-match vs human match, 8 draft non-match vs
+human unsure, 3 draft unsure vs human match; the draft never said match where the person said
+otherwise. Part of it is an undefined question: the labelling screen did not say that "match"
+means the same real-world campground (one pin), so nearby or related facilities (a horse camp
+beside the family campground, lettered loops, cabin tracts) could reasonably be read as
+matches. The screen now states the definition. Each disagreement is being adjudicated with
+`poi review adjudicate`, which records a third, final label and keeps both originals; the
+post-adjudication numbers will be reported next to the raw 56%, not instead of it
+([reports/er_eval.md](reports/er_eval.md) lists all 22 with both labels and the rationale).
+
+Matcher precision and recall depend on which labels are taken as truth, so all are shown
+(counting a pair as merged when both records end up in one entity; 95% CIs in the report):
+
+| labels taken as truth | pairs | precision | recall |
+|---|---|---|---|
+| Claude-drafted (all decisive pairs) | 189 | 1.00 (0.92–1.00) | 0.87 (0.75–0.93) |
+| human, before adjudication (decisive sample pairs) | 42 | 1.00 (0.80–1.00) | 0.50 (0.33–0.67) |
+| after adjudication | pending | | |
+
+Against the drafted labels the 7 missed matches are name variants such as "Agnew Meadows
+Horse Campground" vs "Agnew Horse Camp", and one OSM campground that two RIDB ids both claim,
+which the never-merge-two-RIDB-ids constraint keeps apart. Against the human labels recall is
+0.50 because the matcher keeps apart most of the related-facility pairs the person marked as
+matches; which reading is right is what adjudication decides.
 
 Name embeddings (a local model: `uv sync --extra embeddings`, then `poi match --embeddings`)
 were tried as a candidate source and as a matching feature, and are off: as candidates they
@@ -319,8 +337,9 @@ Production sketch on AWS: [docs/aws.md](docs/aws.md).
 
 ## Limitations and next steps
 
-- Finish the human check of the 50-pair ER sample and report the agreement rate; then decide
-  the merge threshold. Pair scores alone on the drafted labels (before clustering, so recall
+- Adjudicate the 22 ER label disagreements and report the post-adjudication numbers next to
+  the raw 56% agreement; then decide the merge threshold. Pair scores alone on the drafted
+  labels (before clustering, so recall
   differs from the 0.87 above): at 4, the current setting, precision 1.00 / recall 0.88; at 2,
   precision 0.96 / recall 0.92.
 - One region; Forest Service websites are blocked for identified crawlers, so their facts come

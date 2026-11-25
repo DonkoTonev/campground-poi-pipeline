@@ -92,7 +92,12 @@ which hides the drafted label, the rationale and the score bin. The steps are co
 (seed 20261124). `poi eval er` reports
 precision and recall against the drafted labels and against the human sample, the agreement
 rate between the two, and every disagreement, with Wilson intervals. Drafted labels are
-not ground truth; the agreement rate says how far to trust them.
+not ground truth; the agreement rate says how far to trust them. The measured rate was 56%
+(28/50), all disagreements in one direction (the person saying match or unsure where the
+draft said non-match), and the labelling screen had not defined "match"; it now does
+(same real-world campground, one pin). Disagreements get a third, adjudicated label with
+everything visible (`poi review adjudicate`); the drafted and human labels are never edited,
+so the raw agreement stays reproducible and is reported next to the adjudicated numbers.
 
 **Embeddings: measured, then left off.** `poi match --embeddings` adds a local name-embedding
 model (`BAAI/bge-small-en-v1.5` through fastembed, ONNX, no API calls) in two roles: a fourth

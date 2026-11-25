@@ -130,3 +130,32 @@ def test_draw_sample_never_redraws() -> None:
     assert len(drafts.draw_sample(pairs, 4, seed=1)) == 4
     with pytest.raises(ValueError, match="already drawn"):
         drafts.draw_sample(pairs, 4, seed=2)
+
+
+def test_adjudication_keeps_both_originals_and_reports_raw_agreement(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from poi.eval import er
+
+    pairs = [_pair(str(i), str(i + 100)) for i in range(4)]
+    for p, (drafted, human) in zip(
+        pairs,
+        [("match", "match"), ("non_match", "non_match"), ("non_match", "match"),
+         ("non_match", "unsure")],
+        strict=True,
+    ):  # fmt: skip
+        gold.mark_drafted(p, drafted, "r", "claude")
+        p.human_sample = True
+        gold.mark_verified(p, human)
+    gold.mark_final(pairs[2], "non_match", "different NPS ids", "person")
+    assert (pairs[2].label, pairs[2].human_label, pairs[2].final_label) == (
+        "non_match", "match", "non_match",
+    )  # fmt: skip
+    assert [gold.final_label(p) for p in pairs] == ["match", "non_match", "non_match", None]
+    monkeypatch.setattr(er, "load", lambda: pairs)
+    agr = er.agreement()
+    assert agr["agreement"] == 0.5 and agr["adjudicated"] == 1
+    assert agr["final_sides_with_draft"] == 1 and agr["draft_correct_on_sample"] == 3
+    statement = er.label_statement(agr)
+    assert "4 human-verified, agreement 50% (2/4)." in statement
+    assert "sides with the draft on 1 and with the human label on 0; 1 still open." in statement

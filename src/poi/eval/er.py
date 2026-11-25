@@ -17,13 +17,14 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+from collections import Counter
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
 from sqlalchemy import Connection, text
 
-from poi.review.gold import GoldPair, load
+from poi.review.gold import GoldPair, disagrees, final_label, load
 from poi.settings import PROJECT_ROOT, get_settings
 
 REPORT_PATH = PROJECT_ROOT / "reports" / "er_eval.md"
@@ -100,7 +101,9 @@ def _ids(conn: Connection) -> dict[tuple[str, str], int]:
 
 def judge(conn: Connection, region: str, truth: str = "drafted") -> tuple[list[Judged], int]:
     """Join gold pairs with the latest clustering and pair scores. `truth` picks the label:
-    the drafted (Claude, blind) label for every pair, or the human label where it exists."""
+    drafted (Claude, blind, every pair), human (sample), final (sample: the agreed label or
+    the adjudicated one) or corrected (every pair: drafted, replaced by the adjudicated
+    label where there is one)."""
     ids = _ids(conn)
     cluster_of: dict[int, int] = dict(
         conn.execute(
@@ -118,7 +121,12 @@ def judge(conn: Connection, region: str, truth: str = "drafted") -> tuple[list[J
     judged: list[Judged] = []
     missing = 0
     for pair in load():
-        label = pair.label if truth == "drafted" else pair.human_label
+        label = {
+            "drafted": pair.label,
+            "human": pair.human_label,
+            "final": final_label(pair),  # sample only: agreed or adjudicated
+            "corrected": pair.final_label or pair.label,  # all pairs, adjudication applied
+        }[truth]
         if label not in ("match", "non_match"):
             continue
         a = ids.get((pair.a["source"], pair.a["source_id"]))
@@ -154,6 +162,15 @@ def agreement() -> dict[str, Any]:
         "human_verified": len(both),
         "agree": len(agree),
         "agreement": round(len(agree) / len(both), 3) if both else None,
+        "disagreement_kinds": dict(
+            Counter(f"{p.label} -> {p.human_label}" for p in both if p.human_label != p.label)
+        ),
+        "adjudicated": sum(p.final_label is not None for p in both if disagrees(p)),
+        "final_sides_with_draft": sum(p.final_label == p.label for p in both if disagrees(p)),
+        "final_sides_with_human": sum(p.final_label == p.human_label for p in both if disagrees(p)),
+        "draft_correct_on_sample": sum(
+            final_label(p) is not None and final_label(p) == p.label for p in both
+        ),
         "disagreements": [
             {
                 "a": p.a["name"],
@@ -162,6 +179,8 @@ def agreement() -> dict[str, Any]:
                 "human": p.human_label,
                 "rationale": p.rationale,
                 "human_note": p.human_note,
+                "final": p.final_label,
+                "final_note": p.final_note,
             }
             for p in both
             if p.human_label != p.label
@@ -182,7 +201,19 @@ def label_statement(agr: dict[str, Any]) -> str:
     agreement = f"agreement {agr['agreement']:.0%} ({agr['agree']}/{done})"
     if done < n:
         return f"{drafted}, {done} of {n} human-verified so far, {agreement} (provisional)."
-    return f"{drafted}, {n} human-verified, {agreement}."
+    raw = f"{drafted}, {n} human-verified, {agreement}."
+    open_ = done - agr["agree"] - agr["adjudicated"]
+    if agr["adjudicated"] == 0:
+        return f"{raw} Adjudication of the {done - agr['agree']} disagreements pending."
+    after = (
+        f" After adjudicating {agr['adjudicated']} of the {done - agr['agree']} disagreements, "
+        f"the final label sides with the draft on {agr['final_sides_with_draft']} and with the "
+        f"human label on {agr['final_sides_with_human']}"
+    )
+    neither = agr["adjudicated"] - agr["final_sides_with_draft"] - agr["final_sides_with_human"]
+    after += f", neither on {neither}" if neither else ""
+    after += f"; {open_} still open." if open_ else "."
+    return raw + after
 
 
 def evaluate(conn: Connection, region: str) -> dict[str, Any]:
@@ -200,6 +231,15 @@ def evaluate(conn: Connection, region: str) -> dict[str, Any]:
     human, _ = judge(conn, region, truth="human")
     human_clustering = metrics([j.truth for j in human], [j.same_cluster for j in human])
     agr = agreement()
+    views: dict[str, tuple[Metrics, int]] = {}
+    for name, key in (
+        ("drafted labels (all pairs)", "drafted"),
+        ("human labels (sample, before adjudication)", "human"),
+        ("final labels (sample, after adjudication)", "final"),
+        ("drafted + adjudicated corrections (all pairs)", "corrected"),
+    ):
+        js = judged if key == "drafted" else judge(conn, region, truth=key)[0]
+        views[name] = (metrics([j.truth for j in js], [j.same_cluster for j in js]), len(js))
     result = {
         "labels": label_statement(agr),
         "n_labelled": len(judged),
@@ -210,8 +250,10 @@ def evaluate(conn: Connection, region: str) -> dict[str, Any]:
         "agreement": {k: v for k, v in agr.items() if k != "disagreements"},
         "threshold_sweep": {str(t): m.as_dict() for t, m in sweep.items()},
         "errors": {k: len(v) for k, v in errors.items()},
+        "by_label_set": {k: m.as_dict() | {"n": n} for k, (m, n) in views.items()},
     }
     _write_report(region, result, clustering, sweep, errors, agr, human_clustering, len(human))
+    _append_label_sets(views, agr)
     return result
 
 
@@ -316,8 +358,38 @@ def summary_json(result: dict[str, Any]) -> str:
                 "clustering",
                 "clustering_vs_human_sample",
                 "agreement",
+                "by_label_set",
                 "errors",
             )
         },
         indent=2,
     )
+
+
+def _append_label_sets(views: dict[str, tuple[Metrics, int]], agr: dict[str, Any]) -> None:
+    """Matcher metrics against each label set, and every disagreement with its resolution."""
+    lines = [
+        "",
+        "## Matcher against each label set",
+        "",
+        "The raw agreement above is kept as measured; adjudication adds a third label per",
+        "disagreement and never changes the drafted or the human one.",
+        "",
+        "| labels | n | precision | 95% CI | recall | 95% CI | F1 | TP | FP | FN | TN |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
+        *(f"| {name} | {n} " + _clustering_row(m) for name, (m, n) in views.items()),
+        "",
+        "Disagreement kinds (draft -> human): "
+        + ", ".join(f"{k}: {v}" for k, v in sorted(agr["disagreement_kinds"].items())),
+        "",
+        "| A | B | draft | rationale | human | final | why |",
+        "|---|---|---|---|---|---|---|",
+        *(
+            f"| {d['a'] or '(unnamed)'} | {d['b'] or '(unnamed)'} | {d['drafted']} | "
+            f"{d['rationale']} | {d['human']} | {d['final'] or 'open'} | {d['final_note'] or ''} |"
+            for d in agr["disagreements"]
+        ),
+        "",
+    ]
+    with REPORT_PATH.open("a") as f:
+        f.write("\n".join(lines))
